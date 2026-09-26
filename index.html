@@ -42,7 +42,10 @@
         </button>
         <div id="userInfo" class="hidden flex items-center gap-3 bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700">
           <img id="userAvatar" class="w-7 h-7 rounded-full border border-yellow-500" src="" alt="Avatar">
-          <span id="userName" class="text-xs font-semibold text-slate-200">User</span>
+          <div class="flex flex-col">
+            <span id="userName" class="text-xs font-semibold text-slate-200">User</span>
+            <span id="userPermissionBadge" class="text-[9px] text-yellow-500 font-bold"></span>
+          </div>
           <button onclick="logout()" class="text-slate-400 hover:text-red-400 text-sm ml-2" title="Đăng xuất"><i class="fa-solid fa-right-from-bracket"></i></button>
         </div>
       </div>
@@ -58,7 +61,7 @@
   <!-- Main Body -->
   <main class="max-w-7xl mx-auto w-full p-4 md:p-6 flex-grow space-y-8">
 
-    <!-- ADMIN CONTROL PANEL (CHỈ HIỆN KHI ADMIN ĐĂNG NHẬP) -->
+    <!-- ADMIN CONTROL PANEL -->
     <section id="adminPanel" class="hidden bg-slate-900 border border-yellow-500/40 rounded-xl p-5 shadow-xl space-y-4">
       <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-800 pb-3 gap-3">
         <h2 class="font-bold text-lg text-yellow-500 flex items-center gap-2">
@@ -98,7 +101,7 @@
           <i class="fa-solid fa-plus-circle text-yellow-500"></i> Nộp Lá Bài Vào Banlist Giải Đấu
         </h2>
         <span class="text-xs px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-semibold">
-          🟢 Đang Mở Đăng Ký
+          🔒 Yêu Cầu Email Cấp Phép
         </span>
       </div>
 
@@ -131,7 +134,7 @@
           </div>
 
           <button id="btnSubmitProposal" onclick="submitProposal()" class="w-full bg-yellow-500 hover:bg-yellow-600 text-slate-950 font-bold py-3 rounded-lg text-sm transition flex justify-center items-center gap-2">
-            <i class="fa-solid fa-file-export"></i> NỘP LÁ BÀI (CHỜ ADMIN CÔNG BỐ)
+            <i class="fa-solid fa-file-export"></i> NỘP LÁ BÀI (DÀNH CHO EMAIL CẤP PHÉP)
           </button>
         </div>
 
@@ -209,9 +212,17 @@
 
   <!-- App Script -->
   <script>
-    // --- DANH SÁCH EMAIL CÓ QUYỀN ADMIN ---
+    // --- 1. DANH SÁCH EMAIL ADMIN ---
     const ADMIN_EMAILS = [
-      "trananhchuong112@gmail.com" // Email Admin chính
+      "trananhchuong112@gmail.com"
+    ];
+
+    // --- 2. DANH SÁCH EMAIL ĐƯỢC CẤP PHÉP VOTE / NỘP BÀI ---
+    // (Điền các Email của bài thủ được phép tham gia vào đây)
+    const ALLOWED_VOTERS = [
+      "trananhchuong112@gmail.com",
+      "baithu1@gmail.com",
+      "baithu2@gmail.com"
     ];
 
     // --- FIREBASE CONFIG ---
@@ -263,6 +274,7 @@
 
     function updateUserUI() {
       const adminPanel = document.getElementById('adminPanel');
+      const badge = document.getElementById('userPermissionBadge');
 
       if (currentUser) {
         document.getElementById('btnLogin').classList.add('hidden');
@@ -271,15 +283,27 @@
         document.getElementById('userName').textContent = currentUser.displayName || currentUser.email;
 
         // KIỂM TRA QUYỀN ADMIN DỰA TRÊN EMAIL
-        if (ADMIN_EMAILS.includes(currentUser.email)) {
-          adminPanel.classList.remove('hidden'); // Mở bảng admin nếu đúng email
+        const isAdmin = ADMIN_EMAILS.includes(currentUser.email);
+        const isVoter = ALLOWED_VOTERS.includes(currentUser.email);
+
+        if (isAdmin) {
+          adminPanel.classList.remove('hidden');
+          badge.textContent = "⭐ Admin";
+          badge.className = "text-[9px] text-yellow-400 font-bold";
         } else {
-          adminPanel.classList.add('hidden');    // Ẩn bảng admin nếu là bài thủ thường
+          adminPanel.classList.add('hidden');
+          if (isVoter) {
+            badge.textContent = "✅ Có quyền Vote";
+            badge.className = "text-[9px] text-emerald-400 font-bold";
+          } else {
+            badge.textContent = "🔒 Chưa Cấp Phép";
+            badge.className = "text-[9px] text-slate-500 font-bold";
+          }
         }
       } else {
         document.getElementById('btnLogin').classList.remove('hidden');
         document.getElementById('userInfo').classList.add('hidden');
-        adminPanel.classList.add('hidden');      // Ẩn bảng admin khi chưa đăng nhập
+        adminPanel.classList.add('hidden');
       }
     }
 
@@ -330,7 +354,6 @@
       const map = new Map();
       ocgBanlistCards.forEach(c => map.set(c.name, c));
 
-      // Chỉ nạp các lá bài ĐÃ CÔNG BỐ (isApproved === true) vào Banlist chính
       allSubmissions.filter(s => s.isApproved === true).forEach(sub => {
         map.set(sub.cardName, {
           id: sub.cardId,
@@ -502,12 +525,21 @@
       document.getElementById('previewTitle').textContent = card.name;
     }
 
-    // --- SUBMIT ---
+    // --- SUBMIT WITH PERMISSION CHECK ---
     async function submitProposal() {
       if (!currentUser) {
         alert("Vui lòng đăng nhập Google trước khi nộp lá bài!");
         return;
       }
+
+      // KIỂM TRA EMAIL CÓ NẰM TRONG DANH SÁCH ĐƯỢC CẤP PHÉP HOẶC LÀ ADMIN HAY KHÔNG
+      const isAllowed = ALLOWED_VOTERS.includes(currentUser.email) || ADMIN_EMAILS.includes(currentUser.email);
+
+      if (!isAllowed) {
+        alert(`❌ Email [${currentUser.email}] chưa được cấp phép tham gia vote/nộp bài. Vui lòng liên hệ Admin để đăng ký danh sách!`);
+        return;
+      }
+
       if (!selectedCard) {
         alert("Vui lòng tìm và chọn 1 lá bài!");
         return;
@@ -525,7 +557,7 @@
           cardImage: selectedCard.card_images[0].image_url,
           status: status,
           reason: reason,
-          isApproved: false, // Mặc định chưa công bố
+          isApproved: false,
           timestamp: firebase.firestore.FieldValue.serverTimestamp()
         });
         alert(`Đã nộp lá [${selectedCard.name}] thành công! Lá bài đang ở trạng thái Chờ Admin Công Bố.`);
