@@ -54,8 +54,8 @@
 
   <!-- Connection Status Banner -->
   <div id="statusBanner" class="bg-emerald-950/80 border-b border-emerald-500/30 text-emerald-300 text-xs py-2 px-4 text-center flex justify-center items-center gap-2">
-    <i class="fa-solid fa-shield-halved text-emerald-400"></i>
-    <span id="statusText">🟢 Đã kết nối Firebase Secure Realtime (Dự án: custom-banlist)</span>
+    <i class="fa-solid fa-circle-dot animate-pulse text-emerald-400"></i>
+    <span id="statusText">🟢 Đã kết nối Firebase Cloud Realtime (Dự án: custom-banlist)</span>
   </div>
 
   <!-- Main Body -->
@@ -65,7 +65,7 @@
     <section id="adminPanel" class="hidden bg-slate-900 border border-yellow-500/40 rounded-xl p-5 shadow-xl space-y-4">
       <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-800 pb-3 gap-3">
         <h2 class="font-bold text-lg text-yellow-500 flex items-center gap-2">
-          <i class="fa-solid fa-user-shield"></i> Bảng Quản Lý Admin (Bảo Mật)
+          <i class="fa-solid fa-user-shield"></i> Bảng Quản Lý Admin
         </h2>
         <div class="flex gap-2 w-full sm:w-auto">
           <button onclick="publishAllSubmissions()" class="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2 rounded-lg text-xs transition flex justify-center items-center gap-2">
@@ -101,7 +101,7 @@
           <i class="fa-solid fa-plus-circle text-yellow-500"></i> Nộp Lá Bài Vào Banlist Giải Đấu
         </h2>
         <span class="text-xs px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-semibold">
-          🔒 Bảo Mật Quyền Truy Cập
+          🔒 Yêu Cầu Email Cấp Phép
         </span>
       </div>
 
@@ -134,7 +134,7 @@
           </div>
 
           <button id="btnSubmitProposal" onclick="submitProposal()" class="w-full bg-yellow-500 hover:bg-yellow-600 text-slate-950 font-bold py-3 rounded-lg text-sm transition flex justify-center items-center gap-2">
-            <i class="fa-solid fa-file-export"></i> NỘP LÁ BÀI (YÊU CẦU ĐĂNG NHẬP)
+            <i class="fa-solid fa-file-export"></i> NỘP LÁ BÀI (DÀNH CHO EMAIL CẤP PHÉP)
           </button>
         </div>
 
@@ -212,16 +212,16 @@
 
   <!-- App Script -->
   <script>
-    // --- 1. CONFIG BẢO MẬT ADMIN & VOTERS ---
+    // --- 1. DANH SÁCH EMAIL ADMIN ---
     const ADMIN_EMAILS = [
       "trananhchuong112@gmail.com"
     ];
 
+    // --- 2. DANH SÁCH EMAIL ĐƯỢC CẤP PHÉP VOTE / NỘP BÀI ---
     const ALLOWED_VOTERS = [
-      "trananhchuong112@gmail.com"
-      "hokhaidien.dt2017@gmail.com"
-      "kurumitokisaki15111006@gmail.com"
-      // Thêm email bài thủ được phép tại đây
+      "trananhchuong112@gmail.com",
+      "baithu1@gmail.com",
+      "baithu2@gmail.com"
     ];
 
     // --- FIREBASE CONFIG ---
@@ -254,7 +254,10 @@
         updateUserUI();
       });
 
+      // Fetch Base OCG Banlist
       await fetchOCGBanlist();
+
+      // Listen Realtime User Submissions
       setupRealtimeListeners();
     });
 
@@ -340,15 +343,14 @@
 
         renderAdminTable(allSubmissions);
         combineAndRenderBanlist();
-      }, error => {
-        console.error("Firestore Listen Error:", error);
       });
     }
 
-    // --- COMBINE BANLIST & RENDER ---
+    // --- COMBINE BANLIST & RENDER (USER CARDS ARE PLACED AT THE VERY TOP) ---
     function combineAndRenderBanlist() {
       document.getElementById('banlistLoader').classList.add('hidden');
 
+      // Lọc lấy danh sách các lá bài do bài thủ nộp ĐÃ ĐƯỢC CÔNG BỐ
       const approvedSubmissions = allSubmissions
         .filter(s => s.isApproved === true)
         .map(sub => ({
@@ -358,13 +360,18 @@
           status: sub.status,
           source: `Bởi ${sub.userName}`,
           reason: sub.reason,
-          isUserAdded: true
+          isUserAdded: true // Đánh dấu lá bài mới nộp
         }));
 
+      // Tạo Set tên các lá bài mới nộp để tránh bị đè trùng với lá bài gốc OCG
       const userCardNames = new Set(approvedSubmissions.map(c => c.name));
+
+      // Loại bỏ các lá OCG trùng tên nếu bài thủ đã nộp lại lá đó với status mới
       const filteredOCG = ocgBanlistCards.filter(c => !userCardNames.has(c.name));
 
+      // Đặt toàn bộ lá bài do người dùng nộp VÀO ĐẦU MẢNG (Xếp trước OCG)
       combinedBanlist = [...approvedSubmissions, ...filteredOCG];
+
       renderFilteredBanlist(combinedBanlist);
     }
 
@@ -393,6 +400,7 @@
 
       cards.forEach(card => {
         const item = document.createElement('div');
+        // Nếu là lá bài bài thủ nộp thì viền màu vàng nổi bật, lá OCG viền xám mặc định
         const borderClass = card.isUserAdded ? 'border-yellow-500/80 shadow-md shadow-yellow-500/10' : 'border-slate-800';
         
         item.className = `bg-slate-950 border ${borderClass} rounded-lg p-2 text-center card-glow transition flex flex-col items-center relative`;
@@ -417,7 +425,7 @@
       renderFilteredBanlist(filtered);
     }
 
-    // --- ADMIN ACTIONS (SECURED VIA FIRESTORE RULES) ---
+    // --- ADMIN ACTIONS ---
     function renderAdminTable(submissions) {
       const tbody = document.getElementById('adminTableBody');
       const pending = submissions.filter(s => !s.isApproved);
@@ -451,12 +459,8 @@
     }
 
     async function publishAllSubmissions() {
-      if (!currentUser || !ADMIN_EMAILS.includes(currentUser.email)) {
-        alert("❌ Lỗi bảo mật: Bạn không có quyền Admin!");
-        return;
-      }
       if (allSubmissions.length === 0) {
-        alert("Hiện chưa có lá bài nào để công bố!");
+        alert("Hiện chưa có lá bài nào do bài thủ nộp để công bố!");
         return;
       }
       if (!confirm("Bạn có chắc chắn muốn CÔNG BỐ TOÀN BỘ lá bài đã nộp vào Banlist chính thức?")) return;
@@ -471,21 +475,13 @@
         await batch.commit();
         alert("🎉 Đã CÔNG BỐ THÀNH CÔNG toàn bộ lá bài mới vào Banlist!");
       } catch (e) {
-        alert("❌ Lỗi từ chối từ Firebase Security Rules: " + e.message);
+        alert("Lỗi khi công bố: " + e.message);
       }
     }
 
     async function deleteSubmission(docId) {
-      if (!currentUser || !ADMIN_EMAILS.includes(currentUser.email)) {
-        alert("❌ Lỗi bảo mật: Bạn không có quyền Admin!");
-        return;
-      }
       if (confirm("Xóa đề xuất này?")) {
-        try {
-          await db.collection('submissions').doc(docId).delete();
-        } catch (e) {
-          alert("❌ Lỗi từ chối từ Firebase Security Rules: " + e.message);
-        }
+        await db.collection('submissions').doc(docId).delete();
       }
     }
 
@@ -539,7 +535,7 @@
       document.getElementById('previewTitle').textContent = card.name;
     }
 
-    // --- SUBMIT WITH SECURE CHECKS ---
+    // --- SUBMIT WITH PERMISSION CHECK ---
     async function submitProposal() {
       if (!currentUser) {
         alert("Vui lòng đăng nhập Google trước khi nộp lá bài!");
@@ -549,7 +545,7 @@
       const isAllowed = ALLOWED_VOTERS.includes(currentUser.email) || ADMIN_EMAILS.includes(currentUser.email);
 
       if (!isAllowed) {
-        alert(`❌ Email [${currentUser.email}] chưa được cấp phép tham gia vote. Vui lòng liên hệ Admin!`);
+        alert(`❌ Email [${currentUser.email}] chưa được cấp phép tham gia vote/nộp bài. Vui lòng liên hệ Admin để đăng ký danh sách!`);
         return;
       }
 
@@ -570,12 +566,12 @@
           cardImage: selectedCard.card_images[0].image_url,
           status: status,
           reason: reason,
-          isApproved: false, // Bắt buộc false theo Security Rules
+          isApproved: false,
           timestamp: firebase.firestore.FieldValue.serverTimestamp()
         });
-        alert(`Đã nộp lá [${selectedCard.name}] thành công! Đang chờ Admin công bố.`);
+        alert(`Đã nộp lá [${selectedCard.name}] thành công! Lá bài đang ở trạng thái Chờ Admin Công Bố.`);
       } catch (e) {
-        alert("Lỗi khi nộp bài: " + e.message);
+        alert("Lỗi khi gửi lá bài: " + e.message);
       }
     }
   </script>
