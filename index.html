@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>YGO Banlist Hub - Community Tournament</title>
   
-  <!-- Firebase Compat SDKs (Chạy ổn định trên mọi thiết bị và trình duyệt) -->
+  <!-- Firebase Compat SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
@@ -31,7 +31,7 @@
         <i class="fa-solid fa-crown text-yellow-500 text-2xl"></i>
         <div>
           <h1 class="font-bold text-xl tracking-wide text-yellow-500">YGO COMMUNITY BANLIST</h1>
-          <p class="text-xs text-slate-400">Official OCG Base + Community Custom Bans</p>
+          <p class="text-xs text-slate-400">Banlist OCG Gốc + Lá Bài Bài Thủ Đóng Góp</p>
         </div>
       </div>
       
@@ -57,14 +57,47 @@
 
   <!-- Main Body -->
   <main class="max-w-7xl mx-auto w-full p-4 md:p-6 flex-grow space-y-8">
-    
+
+    <!-- ADMIN CONTROL PANEL -->
+    <section id="adminPanel" class="bg-slate-900 border border-yellow-500/40 rounded-xl p-5 shadow-xl space-y-4">
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-800 pb-3 gap-3">
+        <h2 class="font-bold text-lg text-yellow-500 flex items-center gap-2">
+          <i class="fa-solid fa-user-shield"></i> Bảng Quản Lý Admin (Đã Đăng Nhập)
+        </h2>
+        <div class="flex gap-2 w-full sm:w-auto">
+          <button onclick="publishAllSubmissions()" class="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2 rounded-lg text-xs transition flex justify-center items-center gap-2">
+            <i class="fa-solid fa-bullhorn"></i> CÔNG BỐ TOÀN BỘ BANLIST MỚI
+          </button>
+        </div>
+      </div>
+
+      <div class="overflow-x-auto">
+        <p class="text-xs text-slate-400 mb-2">Danh sách lá bài bài thủ đã nộp đang chờ công bố (<span id="pendingCount">0</span> lá chưa công bố):</p>
+        <table class="w-full text-left text-xs text-slate-300 border-collapse">
+          <thead>
+            <tr class="border-b border-slate-800 bg-slate-950 text-slate-400">
+              <th class="p-2.5">Người Nộp</th>
+              <th class="p-2.5">Tên Lá Bài</th>
+              <th class="p-2.5">Trạng Thái Cấm</th>
+              <th class="p-2.5">Lý Do</th>
+              <th class="p-2.5">Tình Trạng</th>
+              <th class="p-2.5">Hành Động</th>
+            </tr>
+          </thead>
+          <tbody id="adminTableBody">
+            <tr><td colspan="6" class="p-4 text-center text-slate-500">Chưa có lá bài nào được nộp</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
     <!-- SUBMISSION PANEL -->
     <section class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg">
       <div class="flex justify-between items-center border-b border-slate-800 pb-3 mb-4">
         <h2 class="font-bold text-lg text-slate-100 flex items-center gap-2">
           <i class="fa-solid fa-plus-circle text-yellow-500"></i> Nộp Lá Bài Vào Banlist Giải Đấu
         </h2>
-        <span id="gateBadge" class="text-xs px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-semibold">
+        <span class="text-xs px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-semibold">
           🟢 Đang Mở Đăng Ký
         </span>
       </div>
@@ -98,7 +131,7 @@
           </div>
 
           <button id="btnSubmitProposal" onclick="submitProposal()" class="w-full bg-yellow-500 hover:bg-yellow-600 text-slate-950 font-bold py-3 rounded-lg text-sm transition flex justify-center items-center gap-2">
-            <i class="fa-solid fa-file-export"></i> NỘP LÁ BÀI VÀO BANLIST NGAY
+            <i class="fa-solid fa-file-export"></i> NỘP LÁ BÀI (CHỜ ADMIN CÔNG BỐ)
           </button>
         </div>
 
@@ -120,9 +153,9 @@
       <div class="flex flex-col sm:flex-row justify-between items-center gap-4 bg-slate-900 border border-slate-800 rounded-xl p-4">
         <div>
           <h3 class="font-bold text-lg text-yellow-500 flex items-center gap-2">
-            <i class="fa-solid fa-list-check"></i> TOÀN BỘ BANLIST GIẢI ĐẤU
+            <i class="fa-solid fa-list-check"></i> BANLIST DUY NHẤT CỦA GIẢI ĐẤU
           </h3>
-          <p class="text-xs text-slate-400">Bao gồm OCG Banlist mặc định + Các lá bài do người chơi nộp vào.</p>
+          <p class="text-xs text-slate-400">Gồm Banlist OCG gốc + Các lá bài mới sau khi Admin bấm Công Bố.</p>
         </div>
         <div class="w-full sm:w-auto">
           <input type="text" id="banlistSearch" oninput="filterBanlist()" placeholder="🔍 Tìm lá bài trong banlist..." 
@@ -133,13 +166,13 @@
       <!-- Loading Spinner -->
       <div id="banlistLoader" class="text-center py-12 text-slate-500">
         <i class="fa-solid fa-circle-notch animate-spin text-3xl text-yellow-500 mb-2"></i>
-        <p class="text-xs">Đang đồng bộ dữ liệu OCG Banlist & bài thủ nộp...</p>
+        <p class="text-xs">Đang đồng bộ dữ liệu OCG Banlist...</p>
       </div>
 
       <!-- SECTION 1: FORBIDDEN (CẤM 0 LÁ) -->
       <div class="bg-slate-900 border border-red-500/30 rounded-xl p-5 space-y-4">
         <div class="flex items-center gap-3 border-b border-red-500/20 pb-3">
-          <span class="w-4 h-4 rounded-full bg-red-600 flex items-center justify-center text-[10px] font-bold">0</span>
+          <span class="w-5 h-5 rounded-full bg-red-600 flex items-center justify-center text-xs font-bold">0</span>
           <h3 class="font-bold text-base text-red-400 uppercase tracking-wider">🚫 FORBIDDEN (Cấm hoàn toàn)</h3>
           <span id="forbiddenCount" class="ml-auto text-xs bg-red-950 text-red-400 border border-red-800 px-2.5 py-0.5 rounded-full font-bold">0 lá</span>
         </div>
@@ -149,7 +182,7 @@
       <!-- SECTION 2: LIMITED (HẠN CHẾ 1 LÁ) -->
       <div class="bg-slate-900 border border-orange-500/30 rounded-xl p-5 space-y-4">
         <div class="flex items-center gap-3 border-b border-orange-500/20 pb-3">
-          <span class="w-4 h-4 rounded-full bg-orange-500 flex items-center justify-center text-[10px] font-bold text-slate-950">1</span>
+          <span class="w-5 h-5 rounded-full bg-orange-500 flex items-center justify-center text-xs font-bold text-slate-950">1</span>
           <h3 class="font-bold text-base text-orange-400 uppercase tracking-wider">⚠️ LIMITED (Tối đa 1 lá)</h3>
           <span id="limitedCount" class="ml-auto text-xs bg-orange-950 text-orange-400 border border-orange-800 px-2.5 py-0.5 rounded-full font-bold">0 lá</span>
         </div>
@@ -159,7 +192,7 @@
       <!-- SECTION 3: SEMI-LIMITED (HẠN CHẾ 2 LÁ) -->
       <div class="bg-slate-900 border border-yellow-500/30 rounded-xl p-5 space-y-4">
         <div class="flex items-center gap-3 border-b border-yellow-500/20 pb-3">
-          <span class="w-4 h-4 rounded-full bg-yellow-500 flex items-center justify-center text-[10px] font-bold text-slate-950">2</span>
+          <span class="w-5 h-5 rounded-full bg-yellow-500 flex items-center justify-center text-xs font-bold text-slate-950">2</span>
           <h3 class="font-bold text-base text-yellow-400 uppercase tracking-wider">🟡 SEMI-LIMITED (Tối đa 2 lá)</h3>
           <span id="semiLimitedCount" class="ml-auto text-xs bg-yellow-950 text-yellow-400 border border-yellow-800 px-2.5 py-0.5 rounded-full font-bold">0 lá</span>
         </div>
@@ -176,7 +209,7 @@
 
   <!-- App Script -->
   <script>
-    // --- FIREBASE CONFIG (HARDCODED CUSTOM-BANLIST) ---
+    // --- FIREBASE CONFIG ---
     const firebaseConfig = {
       apiKey: "AIzaSyA39hLsaOJNAp3PRPb1WmWSA4Y6kPEj14Y",
       authDomain: "custom-banlist.firebaseapp.com",
@@ -197,7 +230,7 @@
     let currentUser = null;
     let selectedCard = null;
     let ocgBanlistCards = [];
-    let userSubmissions = [];
+    let allSubmissions = [];
     let combinedBanlist = [];
 
     window.addEventListener('DOMContentLoaded', async () => {
@@ -265,32 +298,34 @@
     // --- REALTIME SUBMISSIONS ---
     function setupRealtimeListeners() {
       db.collection('submissions').onSnapshot(snapshot => {
-        userSubmissions = [];
+        allSubmissions = [];
         snapshot.forEach(doc => {
-          const data = doc.data();
-          userSubmissions.push({
-            id: data.cardId || doc.id,
-            name: data.cardName,
-            image: data.cardImage,
-            status: data.status,
-            source: `Bởi ${data.userName}`,
-            reason: data.reason
-          });
+          allSubmissions.push({ docId: doc.id, ...doc.data() });
         });
 
+        renderAdminTable(allSubmissions);
         combineAndRenderBanlist();
       });
     }
 
-    // --- COMBINE BANLIST & RENDER ---
+    // --- COMBINE BANLIST & RENDER (ONLY PUBLISHED CARDS) ---
     function combineAndRenderBanlist() {
       document.getElementById('banlistLoader').classList.add('hidden');
 
-      // Map để đè lá bài nếu trùng ID (Ưu tiên bản do người chơi nộp)
       const map = new Map();
-
       ocgBanlistCards.forEach(c => map.set(c.name, c));
-      userSubmissions.forEach(c => map.set(c.name, c)); // Nộp đè lên OCG nếu trùng
+
+      // Lọc CHỈ các lá bài ĐÃ CÔNG BỐ (isApproved === true) để nạp vào Banlist
+      allSubmissions.filter(s => s.isApproved === true).forEach(sub => {
+        map.set(sub.cardName, {
+          id: sub.cardId,
+          name: sub.cardName,
+          image: sub.cardImage,
+          status: sub.status,
+          source: `Bởi ${sub.userName}`,
+          reason: sub.reason
+        });
+      });
 
       combinedBanlist = Array.from(map.values());
       renderFilteredBanlist(combinedBanlist);
@@ -340,6 +375,66 @@
       const q = document.getElementById('banlistSearch').value.toLowerCase();
       const filtered = combinedBanlist.filter(c => c.name.toLowerCase().includes(q));
       renderFilteredBanlist(filtered);
+    }
+
+    // --- ADMIN ACTIONS ---
+    function renderAdminTable(submissions) {
+      const tbody = document.getElementById('adminTableBody');
+      const pending = submissions.filter(s => !s.isApproved);
+      document.getElementById('pendingCount').textContent = pending.length;
+
+      if (submissions.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-slate-500">Chưa có lá bài nào được nộp</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = '';
+      submissions.forEach(sub => {
+        const tr = document.createElement('tr');
+        tr.className = 'border-b border-slate-800 hover:bg-slate-950/50';
+        tr.innerHTML = `
+          <td class="p-2.5 font-semibold text-slate-200">${sub.userName}</td>
+          <td class="p-2.5 text-yellow-500 font-bold">${sub.cardName}</td>
+          <td class="p-2.5"><span class="bg-red-500/10 text-red-400 border border-red-500/20 px-2 py-0.5 rounded text-[10px]">${sub.status}</span></td>
+          <td class="p-2.5 text-slate-400 truncate max-w-xs">${sub.reason || '---'}</td>
+          <td class="p-2.5">
+            ${sub.isApproved 
+              ? '<span class="text-emerald-400 text-[10px] bg-emerald-950 border border-emerald-800 px-2 py-0.5 rounded font-bold">🟢 Đã Công Bố</span>' 
+              : '<span class="text-yellow-400 text-[10px] bg-yellow-950 border border-yellow-800 px-2 py-0.5 rounded font-bold">⏳ Chờ Công Bố</span>'}
+          </td>
+          <td class="p-2.5">
+            <button onclick="deleteSubmission('${sub.docId}')" class="text-red-400 hover:text-red-300" title="Xóa"><i class="fa-solid fa-trash"></i></button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    async function publishAllSubmissions() {
+      if (allSubmissions.length === 0) {
+        alert("Hiện chưa có lá bài nào do bài thủ nộp để công bố!");
+        return;
+      }
+      if (!confirm("Bạn có chắc chắn muốn CÔNG BỐ TOÀN BỘ lá bài đã nộp vào Banlist chính thức?")) return;
+
+      const batch = db.batch();
+      allSubmissions.forEach(sub => {
+        const ref = db.collection('submissions').doc(sub.docId);
+        batch.update(ref, { isApproved: true });
+      });
+
+      try {
+        await batch.commit();
+        alert("🎉 Đã CÔNG BỐ THÀNH CÔNG toàn bộ lá bài mới vào Banlist!");
+      } catch (e) {
+        alert("Lỗi khi công bố: " + e.message);
+      }
+    }
+
+    async function deleteSubmission(docId) {
+      if (confirm("Xóa đề xuất này?")) {
+        await db.collection('submissions').doc(docId).delete();
+      }
     }
 
     // --- SEARCH YGOPRODECK ---
@@ -415,9 +510,10 @@
           cardImage: selectedCard.card_images[0].image_url,
           status: status,
           reason: reason,
+          isApproved: false, // Mặc định chưa công bố
           timestamp: firebase.firestore.FieldValue.serverTimestamp()
         });
-        alert(`Đã thêm thành công lá [${selectedCard.name}] vào danh sách ${status}!`);
+        alert(`Đã nộp lá [${selectedCard.name}] thành công! Lá bài đang ở trạng thái Chờ Admin Công Bố.`);
       } catch (e) {
         alert("Lỗi khi gửi lá bài: " + e.message);
       }
