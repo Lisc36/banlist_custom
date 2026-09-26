@@ -58,11 +58,11 @@
   <!-- Main Body -->
   <main class="max-w-7xl mx-auto w-full p-4 md:p-6 flex-grow space-y-8">
 
-    <!-- ADMIN CONTROL PANEL -->
-    <section id="adminPanel" class="bg-slate-900 border border-yellow-500/40 rounded-xl p-5 shadow-xl space-y-4">
+    <!-- ADMIN CONTROL PANEL (CHỈ HIỆN KHI ADMIN ĐĂNG NHẬP) -->
+    <section id="adminPanel" class="hidden bg-slate-900 border border-yellow-500/40 rounded-xl p-5 shadow-xl space-y-4">
       <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-800 pb-3 gap-3">
         <h2 class="font-bold text-lg text-yellow-500 flex items-center gap-2">
-          <i class="fa-solid fa-user-shield"></i> Bảng Quản Lý Admin (Đã Đăng Nhập)
+          <i class="fa-solid fa-user-shield"></i> Bảng Quản Lý Admin
         </h2>
         <div class="flex gap-2 w-full sm:w-auto">
           <button onclick="publishAllSubmissions()" class="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2 rounded-lg text-xs transition flex justify-center items-center gap-2">
@@ -209,6 +209,11 @@
 
   <!-- App Script -->
   <script>
+    // --- DANH SÁCH EMAIL CÓ QUYỀN ADMIN ---
+    const ADMIN_EMAILS = [
+      "trananhchuong112@gmail.com" // Email Admin chính
+    ];
+
     // --- FIREBASE CONFIG ---
     const firebaseConfig = {
       apiKey: "AIzaSyA39hLsaOJNAp3PRPb1WmWSA4Y6kPEj14Y",
@@ -257,14 +262,24 @@
     }
 
     function updateUserUI() {
+      const adminPanel = document.getElementById('adminPanel');
+
       if (currentUser) {
         document.getElementById('btnLogin').classList.add('hidden');
         document.getElementById('userInfo').classList.remove('hidden');
         document.getElementById('userAvatar').src = currentUser.photoURL || 'https://via.placeholder.com/150';
         document.getElementById('userName').textContent = currentUser.displayName || currentUser.email;
+
+        // KIỂM TRA QUYỀN ADMIN DỰA TRÊN EMAIL
+        if (ADMIN_EMAILS.includes(currentUser.email)) {
+          adminPanel.classList.remove('hidden'); // Mở bảng admin nếu đúng email
+        } else {
+          adminPanel.classList.add('hidden');    // Ẩn bảng admin nếu là bài thủ thường
+        }
       } else {
         document.getElementById('btnLogin').classList.remove('hidden');
         document.getElementById('userInfo').classList.add('hidden');
+        adminPanel.classList.add('hidden');      // Ẩn bảng admin khi chưa đăng nhập
       }
     }
 
@@ -315,7 +330,7 @@
       const map = new Map();
       ocgBanlistCards.forEach(c => map.set(c.name, c));
 
-      // Lọc CHỈ các lá bài ĐÃ CÔNG BỐ (isApproved === true) để nạp vào Banlist
+      // Chỉ nạp các lá bài ĐÃ CÔNG BỐ (isApproved === true) vào Banlist chính
       allSubmissions.filter(s => s.isApproved === true).forEach(sub => {
         map.set(sub.cardName, {
           id: sub.cardId,
