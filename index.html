@@ -1,1055 +1,545 @@
 <!DOCTYPE html>
-<html lang="vi" class="dark">
+<html lang="vi">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Yu-Gi-Oh! Community Banlist Hub</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YGO Banlist Hub - Community Tournament</title>
+  
+  <!-- Firebase Compat SDKs (Hoạt động ổn định trên mọi thiết bị và trình duyệt) -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        ygo: {
-                            gold: '#d4af37',
-                            darkGold: '#aa8c2c',
-                            bg: '#0d0f17',
-                            cardBg: '#181b28',
-                            panelBg: '#1f2436',
-                            accent: '#ff4655'
-                        }
-                    }
-                }
-            }
-        }
-    </script>
-    <!-- FontAwesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Google Fonts Inter -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #0d0f17;
-            color: #e2e8f0;
-        }
-        .gold-border {
-            border: 1px solid rgba(212, 175, 55, 0.3);
-        }
-        .gold-border-glow:focus, .gold-border-glow:hover {
-            border-color: #d4af37;
-            box-shadow: 0 0 10px rgba(212, 175, 55, 0.4);
-        }
-        .gold-gradient-text {
-            background: linear-gradient(135deg, #fff2a3 0%, #d4af37 50%, #aa8c2c 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        .gold-gradient-bg {
-            background: linear-gradient(135deg, #d4af37 0%, #aa8c2c 100%);
-        }
-        .gold-gradient-bg:hover {
-            background: linear-gradient(135deg, #e5be47 0%, #bb9c3c 100%);
-        }
-        /* Custom scrollbars */
-        ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #111420;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #2a3148;
-            border-radius: 3px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #d4af37;
-        }
-    </style>
+  <!-- Tailwind CSS & FontAwesome -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <style>
+    body { background-color: #0f172a; color: #f8fafc; font-family: system-ui, -apple-system, sans-serif; }
+    .card-glow:hover { box-shadow: 0 0 15px rgba(234, 179, 8, 0.4); }
+    .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: #1e293b; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
+  </style>
 </head>
-<body class="min-h-screen flex flex-col justify-between selection:bg-ygo-gold selection:text-black">
+<body class="min-h-screen flex flex-col justify-between custom-scrollbar">
 
-    <!-- TOP HEADER / NAV -->
-    <header class="border-b border-gray-800 bg-ygo-cardBg/90 backdrop-blur sticky top-0 z-40">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-            <div class="flex items-center space-x-3 cursor-pointer" onclick="switchTab('submission-tab')">
-                <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-400 to-yellow-600 flex items-center justify-center text-black font-extrabold text-xl shadow-lg shadow-amber-500/20">
-                    <i class="fa-solid font-bold fa-crown"></i>
-                </div>
-                <div>
-                    <h1 class="font-bold text-lg leading-tight gold-gradient-text tracking-wide">YGO BANLIST HUB</h1>
-                    <p class="text-xs text-gray-400">Community Tournament Rules</p>
-                </div>
-            </div>
-
-            <div id="auth-status-container" class="flex items-center space-x-3">
-                <!-- Dynamic Auth Buttons injected via JS -->
-            </div>
+  <!-- Header -->
+  <header class="bg-slate-900 border-b border-slate-800 p-4 sticky top-0 z-50">
+    <div class="max-w-6xl mx-auto flex justify-between items-center">
+      <div class="flex items-center gap-3">
+        <i class="fa-solid fa-crown text-yellow-500 text-2xl"></i>
+        <div>
+          <h1 class="font-bold text-xl tracking-wide text-yellow-500">YGO BANLIST HUB</h1>
+          <p class="text-xs text-slate-400">Community Tournament Rules</p>
         </div>
-    </header>
-
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow w-full">
-        
-        <!-- MODE INDICATOR BANNER -->
-        <div id="mode-banner" class="mb-6 p-3 rounded-xl border flex items-center justify-between text-xs sm:text-sm bg-amber-950/30 border-amber-500/30 text-amber-200">
-            <div class="flex items-center space-x-2">
-                <i class="fa-solid fa-triangle-exclamation text-amber-400 text-base"></i>
-                <span id="mode-banner-text">Đang dùng <strong>Chế độ Mô phỏng (Demo Mode)</strong>. Bạn có thể bấm Đăng nhập Google để test ngay!</span>
-            </div>
-            <button onclick="openConfigModal()" class="px-3 py-1 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/40 rounded-lg font-medium text-amber-300 transition">
-                <i class="fa-solid fa-gear mr-1"></i> Cấu hình Firebase
-            </button>
+      </div>
+      
+      <!-- User Auth Bar -->
+      <div id="authContainer" class="flex items-center gap-3">
+        <button id="btnLogin" onclick="loginWithGoogle()" class="bg-yellow-500 hover:bg-yellow-600 text-slate-950 font-bold px-4 py-2 rounded-lg text-sm transition flex items-center gap-2">
+          <i class="fa-brands fa-google"></i> Đăng nhập Google
+        </button>
+        <div id="userInfo" class="hidden flex items-center gap-3 bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700">
+          <img id="userAvatar" class="w-7 h-7 rounded-full border border-yellow-500" src="" alt="Avatar">
+          <span id="userName" class="text-xs font-semibold text-slate-200">User</span>
+          <button onclick="logout()" class="text-slate-400 hover:text-red-400 text-sm ml-2" title="Đăng xuất"><i class="fa-solid fa-right-from-bracket"></i></button>
         </div>
+      </div>
+    </div>
+  </header>
 
-        <!-- MAIN TABS NAVIGATION -->
-        <div class="flex border-b border-gray-800 mb-8 space-x-2 sm:space-x-4 overflow-x-auto">
-            <button id="tab-btn-sub" onclick="switchTab('submission-tab')" class="py-3 px-4 text-sm font-semibold border-b-2 border-ygo-gold text-ygo-gold flex items-center space-x-2 whitespace-nowrap">
-                <i class="fa-solid fa-paper-plane"></i>
-                <span>Gửi Lá Bài Cấm</span>
-            </button>
-            <button id="tab-btn-list" onclick="switchTab('banlist-tab')" class="py-3 px-4 text-sm font-semibold border-b-2 border-transparent text-gray-400 hover:text-gray-200 flex items-center space-x-2 whitespace-nowrap">
-                <i class="fa-solid fa-shield-halved"></i>
-                <span>Danh Sách Banlist</span>
-            </button>
-            <button id="tab-btn-admin" onclick="switchTab('admin-tab')" class="py-3 px-4 text-sm font-semibold border-b-2 border-transparent text-gray-400 hover:text-gray-200 flex items-center space-x-2 whitespace-nowrap">
-                <i class="fa-solid fa-user-shield"></i>
-                <span>Admin Control</span>
-            </button>
-        </div>
+  <!-- Connection Status Banner -->
+  <div id="statusBanner" class="bg-emerald-950/80 border-b border-emerald-500/30 text-emerald-300 text-xs py-2 px-4 text-center flex justify-center items-center gap-2">
+    <i class="fa-solid fa-circle-dot animate-pulse text-emerald-400"></i>
+    <span id="statusText">🟢 Đã kết nối Firebase Cloud (Dự án: custom-banlist)</span>
+  </div>
 
-        <!-- TAB 1: SUBMISSION TAB -->
-        <section id="submission-tab" class="tab-content block space-y-6">
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <!-- Left: Form Submission -->
-                <div class="lg:col-span-2 bg-ygo-cardBg rounded-2xl p-6 gold-border shadow-xl">
-                    <div class="flex items-center justify-between mb-6 pb-4 border-b border-gray-800">
-                        <div>
-                            <h2 class="text-xl font-bold text-white flex items-center gap-2">
-                                <i class="fa-solid fa-circle-plus text-ygo-gold"></i>
-                                Đề Xuất Lá Bài Cấm
-                            </h2>
-                            <p class="text-xs text-gray-400 mt-1">Mỗi bài thủ gửi 1 lá bài muốn cấm cho giải đấu tới.</p>
-                        </div>
-                        <span id="gate-status-badge" class="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                            <i class="fa-solid fa-unlock mr-1"></i> Đang Mở Đăng Ký
-                        </span>
-                    </div>
-
-                    <!-- Search Card Input -->
-                    <div class="space-y-4">
-                        <div class="relative">
-                            <label class="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">Tìm tên lá bài (YGOPRODeck database)</label>
-                            <div class="relative">
-                                <input type="text" id="card-search-input" placeholder="Nhập tên lá bài (ví dụ: Ash Blossom, Maxx C, Dark Ruler...)" 
-                                    class="w-full bg-ygo-bg border border-gray-700 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none gold-border-glow transition pr-10">
-                                <div id="search-spinner" class="hidden absolute right-3 top-3.5 text-ygo-gold animate-spin">
-                                    <i class="fa-solid fa-circle-notch"></i>
-                                </div>
-                            </div>
-                            <!-- Autocomplete Dropdown -->
-                            <div id="autocomplete-results" class="hidden absolute left-0 right-0 top-full mt-2 bg-ygo-panelBg border border-gray-700 rounded-xl shadow-2xl z-30 max-h-60 overflow-y-auto divide-y divide-gray-800"></div>
-                        </div>
-
-                        <!-- Card Type/Category Override -->
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-                            <div>
-                                <label class="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">Trạng thái đề xuất</label>
-                                <select id="ban-status-select" class="w-full bg-ygo-bg border border-gray-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none gold-border-glow">
-                                    <option value="Forbidden">Forbidden (Cấm 0 lá)</option>
-                                    <option value="Limited">Limited (Giới hạn 1 lá)</option>
-                                    <option value="Semi-Limited">Semi-Limited (Giới hạn 2 lá)</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">Lý do đề xuất ban</label>
-                                <input type="text" id="ban-reason-input" placeholder="VD: Quá mạnh trong meta hiện tại" class="w-full bg-ygo-bg border border-gray-700 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none gold-border-glow">
-                            </div>
-                        </div>
-
-                        <!-- Submit Button -->
-                        <div class="pt-4">
-                            <button id="submit-card-btn" onclick="handleCardSubmit()" class="w-full py-3.5 px-6 rounded-xl font-bold text-black gold-gradient-bg shadow-lg shadow-amber-500/10 flex items-center justify-center space-x-2 transition disabled:opacity-50 disabled:cursor-not-allowed">
-                                <i class="fa-solid fa-paper-plane"></i>
-                                <span>GỬI ĐỀ XUẤT NÀY</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Right: Card Live Preview -->
-                <div class="bg-ygo-cardBg rounded-2xl p-6 gold-border flex flex-col items-center justify-center text-center">
-                    <h3 class="text-xs font-bold uppercase tracking-widest text-ygo-gold mb-4">Xem Trước Lá Bài</h3>
-                    <div id="card-preview-container" class="w-48 h-72 rounded-xl border-2 border-dashed border-gray-700 flex flex-col items-center justify-center p-4 bg-ygo-bg/50 overflow-hidden relative group">
-                        <i class="fa-regular fa-image text-4xl text-gray-600 mb-2"></i>
-                        <p class="text-xs text-gray-500">Chưa chọn lá bài nào</p>
-                        <img id="card-preview-img" class="hidden w-full h-full object-contain rounded-lg" src="" alt="Card Artwork">
-                    </div>
-                    <p id="card-preview-title" class="font-bold text-white mt-4 text-sm truncate max-w-full">--</p>
-                    <p id="card-preview-type" class="text-xs text-gray-400 mt-0.5">Yu-Gi-Oh! TCG Card</p>
-                </div>
-            </div>
-
-            <!-- User's Existing Submissions Section -->
-            <div class="bg-ygo-cardBg rounded-2xl p-6 gold-border shadow-xl mt-8">
-                <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                    <i class="fa-solid fa-box-archive text-ygo-gold"></i>
-                    Đề Xuất Của Bạn (Secret Submission)
-                </h3>
-                <p class="text-xs text-gray-400 mb-4">Bình chọn của bạn được giữ bí mật với người chơi khác cho đến khi Admin công bố Banlist chính thức.</p>
-
-                <div id="my-submissions-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <div class="text-center py-8 text-gray-500 col-span-full">Đang tải đề xuất...</div>
-                </div>
-            </div>
-        </section>
-
-        <!-- TAB 2: PUBLISHED BANLIST TAB -->
-        <section id="banlist-tab" class="tab-content hidden space-y-6">
-            <div class="bg-ygo-cardBg rounded-2xl p-6 gold-border shadow-xl">
-                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-6 border-b border-gray-800 gap-4">
-                    <div>
-                        <h2 class="text-2xl font-black text-white gold-gradient-text tracking-wide">DANH SÁCH BANLIST CỘNG ĐỒNG</h2>
-                        <p class="text-xs text-gray-400 mt-1">Kết quả bình chọn lá bài cấm tổng hợp từ cộng đồng.</p>
-                    </div>
-                    <div class="flex items-center space-x-3">
-                        <span id="banlist-published-status" class="px-3 py-1 rounded-full text-xs font-semibold bg-gray-800 text-gray-400 border border-gray-700">
-                            <i class="fa-solid fa-lock mr-1"></i> Chưa công bố
-                        </span>
-                        <button onclick="exportBanlistText()" class="px-3 py-1.5 bg-ygo-panelBg hover:bg-gray-800 border border-ygo-gold/40 text-ygo-gold text-xs font-bold rounded-xl transition flex items-center gap-1.5">
-                            <i class="fa-solid fa-copy"></i> Copy Text
-                        </button>
-                    </div>
-                </div>
-
-                <div id="published-banlist-container" class="mt-8 space-y-8">
-                    <!-- Forbidden Section -->
-                    <div>
-                        <div class="flex items-center gap-3 mb-4">
-                            <div class="w-8 h-8 rounded-lg bg-red-600/20 border border-red-500/40 text-red-500 flex items-center justify-center font-bold">
-                                <i class="fa-solid fa-ban"></i>
-                            </div>
-                            <h3 class="font-bold text-red-400 text-lg uppercase tracking-wide">Forbidden (Cấm 0 lá)</h3>
-                        </div>
-                        <div id="published-forbidden-cards" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                            <!-- Cards go here -->
-                        </div>
-                    </div>
-
-                    <!-- Limited Section -->
-                    <div>
-                        <div class="flex items-center gap-3 mb-4">
-                            <div class="w-8 h-8 rounded-lg bg-amber-600/20 border border-amber-500/40 text-amber-500 flex items-center justify-center font-bold">1</div>
-                            <h3 class="font-bold text-amber-400 text-lg uppercase tracking-wide">Limited (Hạn chế 1 lá)</h3>
-                        </div>
-                        <div id="published-limited-cards" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                            <!-- Cards go here -->
-                        </div>
-                    </div>
-
-                    <!-- Semi-Limited Section -->
-                    <div>
-                        <div class="flex items-center gap-3 mb-4">
-                            <div class="w-8 h-8 rounded-lg bg-blue-600/20 border border-blue-500/40 text-blue-500 flex items-center justify-center font-bold">2</div>
-                            <h3 class="font-bold text-blue-400 text-lg uppercase tracking-wide">Semi-Limited (Hạn chế 2 lá)</h3>
-                        </div>
-                        <div id="published-semilimited-cards" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                            <!-- Cards go here -->
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- TAB 3: ADMIN CONTROL TAB -->
-        <section id="admin-tab" class="tab-content hidden space-y-6">
-            <div id="admin-lock-screen" class="bg-ygo-cardBg rounded-2xl p-8 gold-border text-center max-w-md mx-auto">
-                <i class="fa-solid fa-user-lock text-5xl text-ygo-gold mb-4"></i>
-                <h2 class="text-xl font-bold text-white mb-2">Quyền Truy Cập Admin</h2>
-                <p class="text-xs text-gray-400 mb-6">Nhập Mã Admin Key để quản lý cổng đăng ký và công bố Banlist.</p>
-                <div class="space-y-4">
-                    <input type="password" id="admin-key-input" placeholder="Nhập Secret Key (Default: YGO2026ADMIN)" class="w-full bg-ygo-bg border border-gray-700 rounded-xl px-4 py-3 text-sm text-center text-white focus:outline-none gold-border-glow">
-                    <button onclick="verifyAdminKey()" class="w-full py-3 bg-ygo-gold hover:bg-yellow-500 text-black font-bold rounded-xl transition">
-                        XÁC NHẬN MÃ ADMIN
-                    </button>
-                </div>
-            </div>
-
-            <div id="admin-dashboard" class="hidden space-y-6">
-                <!-- Controls Panel -->
-                <div class="bg-ygo-cardBg rounded-2xl p-6 gold-border grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div class="bg-ygo-panelBg p-5 rounded-xl border border-gray-800">
-                        <h3 class="font-bold text-white mb-1">Cổng Đề Xuất Lá Bài</h3>
-                        <p class="text-xs text-gray-400 mb-4">Đóng/Mở quyền gửi đề xuất của các bài thủ.</p>
-                        <button id="toggle-gate-btn" onclick="toggleSubmissionGate()" class="px-4 py-2.5 rounded-xl font-bold text-xs bg-emerald-600 hover:bg-emerald-500 text-white transition">
-                            <i class="fa-solid fa-lock-open mr-1"></i> Đang Mở (Bấm để Đóng)
-                        </button>
-                    </div>
-
-                    <div class="bg-ygo-panelBg p-5 rounded-xl border border-gray-800">
-                        <h3 class="font-bold text-white mb-1">Công Bố Banlist</h3>
-                        <p class="text-xs text-gray-400 mb-4">Hiện/Ẩn danh sách Banlist tổng hợp cho cộng đồng.</p>
-                        <button id="toggle-publish-btn" onclick="togglePublishBanlist()" class="px-4 py-2.5 rounded-xl font-bold text-xs bg-gray-700 hover:bg-gray-600 text-white transition">
-                            <i class="fa-solid fa-eye-slash mr-1"></i> Chưa Công Bố (Bấm để Hiện)
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Admin Submissions Management -->
-                <div class="bg-ygo-cardBg rounded-2xl p-6 gold-border">
-                    <div class="flex items-center justify-between mb-6">
-                        <h3 class="font-bold text-white text-lg">Tất Cả Đề Xuất Từ Người Chơi (<span id="total-submissions-count">0</span>)</h3>
-                        <button onclick="exportBanlistText()" class="px-3 py-1.5 bg-amber-500/20 text-amber-300 border border-amber-500/40 font-semibold rounded-lg text-xs hover:bg-amber-500/30 transition">
-                            <i class="fa-solid fa-share-nodes mr-1"></i> Xuất Dạng Text/Post
-                        </button>
-                    </div>
-
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left text-xs text-gray-300">
-                            <thead class="bg-ygo-panelBg uppercase text-ygo-gold">
-                                <tr>
-                                    <th class="p-3">Bài Thủ</th>
-                                    <th class="p-3">Tên Lá Bài</th>
-                                    <th class="p-3">Loại Ban</th>
-                                    <th class="p-3">Lý Do</th>
-                                    <th class="p-3">Thao Tác</th>
-                                </tr>
-                            </thead>
-                            <tbody id="admin-submissions-tbody" class="divide-y divide-gray-800">
-                                <tr>
-                                    <td colspan="5" class="text-center py-6 text-gray-500">Chưa có đề xuất nào.</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </section>
-    </main>
-
-    <!-- FIREBASE CONFIG MODAL -->
-    <div id="config-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-ygo-cardBg border border-ygo-gold/50 rounded-2xl max-w-lg w-full p-6 shadow-2xl relative">
-            <button onclick="closeConfigModal()" class="absolute right-4 top-4 text-gray-400 hover:text-white">
-                <i class="fa-solid fa-xmark text-lg"></i>
-            </button>
-            <div class="flex items-center space-x-3 mb-4">
-                <div class="w-10 h-10 rounded-lg bg-amber-500/20 text-ygo-gold flex items-center justify-center text-xl">
-                    <i class="fa-solid fa-fire"></i>
-                </div>
-                <div>
-                    <h3 class="text-lg font-bold text-white">Cấu Hình Firebase Project</h3>
-                    <p class="text-xs text-gray-400">Nhập credentials Firebase thực tế của bạn để đồng bộ Cloud.</p>
-                </div>
-            </div>
-
-            <div class="space-y-3 text-xs">
-                <div>
-                    <label class="block font-semibold text-gray-300 mb-1">API Key</label>
-                    <input type="text" id="cfg-apiKey" placeholder="AIzaSy..." class="w-full bg-ygo-bg border border-gray-700 rounded-lg p-2.5 text-white focus:outline-none focus:border-ygo-gold">
-                </div>
-                <div>
-                    <label class="block font-semibold text-gray-300 mb-1">Auth Domain</label>
-                    <input type="text" id="cfg-authDomain" placeholder="your-app.firebaseapp.com" class="w-full bg-ygo-bg border border-gray-700 rounded-lg p-2.5 text-white focus:outline-none focus:border-ygo-gold">
-                </div>
-                <div>
-                    <label class="block font-semibold text-gray-300 mb-1">Project ID</label>
-                    <input type="text" id="cfg-projectId" placeholder="your-app-id" class="w-full bg-ygo-bg border border-gray-700 rounded-lg p-2.5 text-white focus:outline-none focus:border-ygo-gold">
-                </div>
-                <div>
-                    <label class="block font-semibold text-gray-300 mb-1">App ID</label>
-                    <input type="text" id="cfg-appId" placeholder="1:12345:web:abcde..." class="w-full bg-ygo-bg border border-gray-700 rounded-lg p-2.5 text-white focus:outline-none focus:border-ygo-gold">
-                </div>
-            </div>
-
-            <div class="mt-6 flex items-center justify-end space-x-3">
-                <button onclick="clearCustomFirebaseConfig()" class="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs font-semibold rounded-xl">
-                    Xóa & Dùng Demo Mode
-                </button>
-                <button onclick="saveFirebaseConfig()" class="px-5 py-2 gold-gradient-bg text-black text-xs font-bold rounded-xl shadow-lg">
-                    Lưu & Kết Nối Firebase
-                </button>
-            </div>
-        </div>
+  <!-- Main Body -->
+  <main class="max-w-6xl mx-auto w-full p-4 md:p-6 flex-grow">
+    
+    <!-- Navigation Tabs -->
+    <div class="flex border-b border-slate-800 mb-6 gap-2">
+      <button id="tabSubmitBtn" onclick="switchTab('submit')" class="px-4 py-2 font-bold text-sm border-b-2 border-yellow-500 text-yellow-500 transition flex items-center gap-2">
+        <i class="fa-solid fa-paper-plane"></i> Gửi Lá Bài Cấm
+      </button>
+      <button id="tabOfficialBtn" onclick="switchTab('official')" class="px-4 py-2 font-bold text-sm text-slate-400 hover:text-slate-200 transition flex items-center gap-2">
+        <i class="fa-solid fa-book-bookmark"></i> Official Banlist (OCG)
+      </button>
+      <button id="tabCustomBtn" onclick="switchTab('custom')" class="px-4 py-2 font-bold text-sm text-slate-400 hover:text-slate-200 transition flex items-center gap-2">
+        <i class="fa-solid fa-shield-halved"></i> Banlist Giải Đấu
+      </button>
+      <button id="tabAdminBtn" onclick="switchTab('admin')" class="px-4 py-2 font-bold text-sm text-slate-400 hover:text-slate-200 transition flex items-center gap-2 ml-auto">
+        <i class="fa-solid fa-user-gear"></i> Admin Control
+      </button>
     </div>
 
-    <!-- AUTH MODAL (Email/Password & Google) -->
-    <div id="auth-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-ygo-cardBg border border-ygo-gold/40 rounded-2xl max-w-md w-full p-6 shadow-2xl relative">
-            <button onclick="closeAuthModal()" class="absolute right-4 top-4 text-gray-400 hover:text-white">
-                <i class="fa-solid fa-xmark text-lg"></i>
-            </button>
-            <h3 id="auth-modal-title" class="text-xl font-bold text-white text-center mb-6">Đăng Nhập Bài Thủ</h3>
+    <!-- TAB 1: SUBMIT CARD -->
+    <div id="tabSubmit" class="space-y-6">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        
+        <!-- Form Section -->
+        <div class="md:col-span-2 bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4">
+          <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+            <h2 class="font-bold text-lg text-slate-100 flex items-center gap-2">
+              <i class="fa-solid fa-circle-plus text-yellow-500"></i> Đề Xuất Lá Bài Cấm
+            </h2>
+            <span id="gateBadge" class="text-xs px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-semibold">
+              🟢 Đang Mở Đăng Ký
+            </span>
+          </div>
 
-            <!-- GOOGLE SIGN IN BUTTON -->
-            <button onclick="handleGoogleSignIn()" class="w-full py-3 px-4 bg-white hover:bg-gray-100 text-gray-800 font-bold rounded-xl flex items-center justify-center space-x-3 shadow-md transition mb-4">
-                <svg class="w-5 h-5" viewBox="0 0 24 24">
-                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
-                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
-                </svg>
-                <span>Đăng Nhập Với Google</span>
-            </button>
+          <p class="text-xs text-slate-400">Mỗi bài thủ gửi 1 lá bài muốn bổ sung vào Banlist dành riêng cho giải đấu này.</p>
 
-            <div class="relative flex py-2 items-center my-2">
-                <div class="flex-grow border-t border-gray-700"></div>
-                <span class="flex-shrink mx-4 text-xs text-gray-500 uppercase">Hoặc Email</span>
-                <div class="flex-grow border-t border-gray-700"></div>
+          <div class="space-y-3 relative">
+            <label class="block text-xs font-semibold text-slate-300 uppercase">Tìm Tên Lá Bài (YGOPRODeck)</label>
+            <input type="text" id="cardSearch" oninput="handleCardSearch(this.value)" placeholder="Nhập tên lá bài (VD: Ash Blossom, Maxx C, Dark Ruler...)" 
+                   class="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-sm text-slate-100 focus:outline-none focus:border-yellow-500">
+            
+            <!-- Autocomplete Results -->
+            <div id="searchDropdown" class="hidden absolute top-full left-0 right-0 bg-slate-900 border border-slate-700 rounded-lg shadow-xl max-h-60 overflow-y-auto z-50 mt-1 custom-scrollbar"></div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 uppercase mb-1">Trạng Thái Đề Xuất</label>
+              <select id="banStatus" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-sm text-slate-100 focus:outline-none focus:border-yellow-500">
+                <option value="Forbidden">Forbidden (Cấm 0 lá)</option>
+                <option value="Limited">Limited (Hạn chế 1 lá)</option>
+                <option value="Semi-Limited">Semi-Limited (Hạn chế 2 lá)</option>
+              </select>
             </div>
-
-            <form id="email-auth-form" onsubmit="handleEmailAuth(event)" class="space-y-4">
-                <div>
-                    <label class="block text-xs text-gray-400 mb-1">Email</label>
-                    <input type="email" id="auth-email" required placeholder="duelist@yugioh.com" class="w-full bg-ygo-bg border border-gray-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none gold-border-glow">
-                </div>
-                <div>
-                    <label class="block text-xs text-gray-400 mb-1">Mật Khẩu</label>
-                    <input type="password" id="auth-password" required placeholder="••••••••" class="w-full bg-ygo-bg border border-gray-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none gold-border-glow">
-                </div>
-                <button type="submit" id="auth-submit-btn" class="w-full py-3 gold-gradient-bg text-black font-bold rounded-xl transition">
-                    Đăng Nhập
-                </button>
-            </form>
-
-            <div class="mt-4 text-center">
-                <button onclick="toggleAuthMode()" id="toggle-auth-btn" class="text-xs text-ygo-gold hover:underline">
-                    Chưa có tài khoản? Đăng ký ngay
-                </button>
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 uppercase mb-1">Lý Do Đề Xuất Ban</label>
+              <input type="text" id="banReason" placeholder="VD: Quá mạnh trong meta hiện tại" 
+                     class="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-sm text-slate-100 focus:outline-none focus:border-yellow-500">
             </div>
+          </div>
+
+          <button id="btnSubmitProposal" onclick="submitProposal()" class="w-full bg-yellow-500 hover:bg-yellow-600 text-slate-950 font-bold py-3 rounded-lg text-sm transition flex justify-center items-center gap-2">
+            <i class="fa-solid fa-paper-plane"></i> GỬI ĐỀ XUẤT NÀY
+          </button>
         </div>
+
+        <!-- Preview Section -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 flex flex-col items-center justify-center min-h-[350px]">
+          <span class="text-xs font-semibold text-slate-400 uppercase mb-3">Xem Trước Lá Bài</span>
+          <div id="cardPreviewContainer" class="w-48 h-72 border-2 border-dashed border-slate-800 rounded-lg flex flex-col items-center justify-center p-2 text-center">
+            <i class="fa-regular fa-image text-4xl text-slate-700 mb-2"></i>
+            <p class="text-xs text-slate-500">Chưa chọn lá bài nào</p>
+          </div>
+          <h3 id="previewTitle" class="mt-3 font-bold text-sm text-slate-200 text-center">--</h3>
+          <p id="previewType" class="text-xs text-slate-500">Yu-Gi-Oh! TCG Card</p>
+        </div>
+
+      </div>
     </div>
 
-    <!-- FOOTER -->
-    <footer class="border-t border-gray-800 py-6 text-center text-xs text-gray-500">
-        <p>Yu-Gi-Oh! Community Banlist Manager &copy; 2026. Built for Tournament Hosts & Players.</p>
-    </footer>
+    <!-- TAB 2: OFFICIAL OCG BANLIST -->
+    <div id="tabOfficial" class="hidden space-y-4">
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
+        <div class="flex flex-col md:flex-row justify-between items-center gap-4 mb-4 border-b border-slate-800 pb-3">
+          <div>
+            <h2 class="font-bold text-lg text-slate-100 flex items-center gap-2">
+              <i class="fa-solid fa-book-bookmark text-yellow-500"></i> Official OCG Banlist
+            </h2>
+            <p class="text-xs text-slate-400">Danh sách Banlist OCG chính thức hiện tại từ YGOPRODeck API.</p>
+          </div>
+          <div class="flex gap-2 w-full md:w-auto">
+            <input type="text" id="officialSearch" oninput="filterOfficialList()" placeholder="Lọc theo tên lá bài..." 
+                   class="bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-yellow-500 w-full md:w-48">
+            <label class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs px-3 py-1.5 rounded-lg cursor-pointer flex items-center gap-1 font-semibold">
+              <i class="fa-solid fa-file-arrow-up"></i> Tải .lflist
+              <input type="file" id="lflistInput" accept=".lflist,.conf,.txt" class="hidden" onchange="handleLflistUpload(event)">
+            </label>
+          </div>
+        </div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { 
-            getAuth, 
-            GoogleAuthProvider, 
-            signInWithPopup, 
-            signInWithEmailAndPassword, 
-            createUserWithEmailAndPassword, 
-            signOut, 
-            onAuthStateChanged 
-        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { 
-            getFirestore, 
-            collection, 
-            addDoc, 
-            getDocs, 
-            deleteDoc, 
-            doc, 
-            setDoc, 
-            getDoc, 
-            onSnapshot 
-        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        <!-- Cards Container -->
+        <div id="officialListLoader" class="text-center py-12 text-slate-500">
+          <i class="fa-solid fa-circle-notch animate-spin text-3xl text-yellow-500 mb-2"></i>
+          <p class="text-xs">Đang tải danh sách OCG Banlist chính thức...</p>
+        </div>
 
-        // Global State
-        let app = null;
-        let auth = null;
-        let db = null;
-        let currentUser = null;
-        let isRealFirebase = false;
-        let isAuthSignUp = false;
-        let isAdminLoggedIn = false;
+        <div id="officialGrid" class="hidden grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4"></div>
+      </div>
+    </div>
+
+    <!-- TAB 3: CUSTOM TOURNAMENT BANLIST -->
+    <div id="tabCustom" class="hidden space-y-4">
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
+        <div id="customBanlistHeader" class="text-center py-12">
+          <i class="fa-solid fa-lock text-5xl text-slate-700 mb-3"></i>
+          <h3 class="font-bold text-lg text-slate-300">Banlist Chưa Được Công Bố</h3>
+          <p class="text-xs text-slate-500 max-w-md mx-auto mt-1">Banlist chính thức cho giải đấu này đang được tổng hợp bí mật bởi Ban Tổ Chức. Danh sách sẽ hiển thị ngay khi Admin bấm Công Bố.</p>
+        </div>
         
-        let selectedSearchCard = null;
-        let allSubmissions = [];
-        let systemSettings = { gateOpen: true, banlistPublished: false };
+        <div id="customBanlistContent" class="hidden grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4"></div>
+      </div>
+    </div>
 
-        const APP_ID = typeof __app_id !== 'undefined' ? __app_id : 'ygo-banlist-app';
+    <!-- TAB 4: ADMIN CONTROL -->
+    <div id="tabAdmin" class="hidden space-y-6">
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4">
+        <h2 class="font-bold text-lg text-slate-100 border-b border-slate-800 pb-3 flex items-center gap-2">
+          <i class="fa-solid fa-sliders text-yellow-500"></i> Admin Panel
+        </h2>
 
-        // DEFAULT FALLBACK / CUSTOM FIREBASE CONFIG CHECK
-        function loadFirebaseConfig() {
-            const savedConfig = localStorage.getItem('custom_firebase_config');
-            if (savedConfig) {
-                try {
-                    return JSON.parse(savedConfig);
-                } catch(e) {}
-            }
-            if (typeof __firebase_config !== 'undefined') {
-                try {
-                    return JSON.parse(__firebase_config);
-                } catch(e) {}
-            }
-            return {
-                apiKey: "YOUR_API_KEY",
-                authDomain: "demo.firebaseapp.com",
-                projectId: "demo-project",
-                appId: "1:12345:web:demo"
-            };
-        }
+        <div class="flex flex-wrap gap-4">
+          <button id="btnToggleGate" onclick="toggleGate()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2 rounded-lg text-xs transition flex items-center gap-2">
+            <i class="fa-solid fa-door-open"></i> Đóng / Mở Cổng Nộp Bài
+          </button>
+          <button id="btnPublish" onclick="togglePublish()" class="bg-yellow-500 hover:bg-yellow-600 text-slate-950 font-bold px-4 py-2 rounded-lg text-xs transition flex items-center gap-2">
+            <i class="fa-solid fa-globe"></i> Công Bố / Bỏ Công Bố Banlist
+          </button>
+        </div>
 
-        // Initialize Firebase cleanly or fallback to Demo Mode
-        async function initFirebase() {
-            const config = loadFirebaseConfig();
-            
-            // Check if API Key is valid or placeholder
-            if (config && config.apiKey && config.apiKey !== "YOUR_API_KEY" && !config.apiKey.includes("YOUR_")) {
-                try {
-                    app = initializeApp(config);
-                    auth = getAuth(app);
-                    db = getFirestore(app);
-                    isRealFirebase = true;
-
-                    onAuthStateChanged(auth, (user) => {
-                        currentUser = user;
-                        updateAuthUI();
-                        loadData();
-                    });
-
-                    updateModeBanner(true);
-                } catch (err) {
-                    console.warn("Firebase Init Error, falling back to Demo Mode:", err);
-                    setupDemoMode();
-                }
-            } else {
-                setupDemoMode();
-            }
-        }
-
-        function setupDemoMode() {
-            isRealFirebase = false;
-            updateModeBanner(false);
-            
-            // Restore demo user session if exists
-            const savedDemoUser = localStorage.getItem('ygo_demo_user');
-            if (savedDemoUser) {
-                currentUser = JSON.parse(savedDemoUser);
-            }
-            updateAuthUI();
-            loadData();
-        }
-
-        function updateModeBanner(isReal) {
-            const banner = document.getElementById('mode-banner');
-            const text = document.getElementById('mode-banner-text');
-            if (isReal) {
-                banner.className = "mb-6 p-3 rounded-xl border flex items-center justify-between text-xs sm:text-sm bg-emerald-950/30 border-emerald-500/30 text-emerald-200";
-                text.innerHTML = '<i class="fa-solid fa-cloud-check text-emerald-400 mr-1.5"></i> Đã kết nối <strong>Firebase Cloud Realtime</strong>!';
-            } else {
-                banner.className = "mb-6 p-3 rounded-xl border flex items-center justify-between text-xs sm:text-sm bg-amber-950/30 border-amber-500/30 text-amber-200";
-                text.innerHTML = '<i class="fa-solid fa-circle-info text-amber-400 mr-1.5"></i> Chế độ <strong>Demo / LocalStorage Mode</strong>. Nhập Firebase API key thực tế nếu muốn đồng bộ online.';
-            }
-        }
-
-        // GOOGLE SIGN-IN HANDLER
-        window.handleGoogleSignIn = async function() {
-            if (isRealFirebase) {
-                try {
-                    const provider = new GoogleAuthProvider();
-                    const result = await signInWithPopup(auth, provider);
-                    currentUser = result.user;
-                    closeAuthModal();
-                    updateAuthUI();
-                    loadData();
-                } catch (error) {
-                    console.error("Google Auth Error:", error);
-                    alert("Lỗi Đăng Nhập Google: " + error.message + "\n\nĐang tự động chuyển sang Chế độ Demo cho bạn.");
-                    simulateDemoGoogleLogin();
-                }
-            } else {
-                simulateDemoGoogleLogin();
-            }
-        };
-
-        function simulateDemoGoogleLogin() {
-            const mockUser = {
-                uid: 'demo_user_' + Date.now(),
-                displayName: 'Dualist Google Player',
-                email: 'duelist.google@demo.com',
-                photoURL: 'https://placehold.co/100x100/d4af37/000000?text=YGO'
-            };
-            currentUser = mockUser;
-            localStorage.setItem('ygo_demo_user', JSON.stringify(mockUser));
-            closeAuthModal();
-            updateAuthUI();
-            loadData();
-        }
-
-        // EMAIL/PASSWORD AUTH HANDLER
-        window.handleEmailAuth = async function(e) {
-            e.preventDefault();
-            const email = document.getElementById('auth-email').value;
-            const password = document.getElementById('auth-password').value;
-
-            if (isRealFirebase) {
-                try {
-                    if (isAuthSignUp) {
-                        const res = await createUserWithEmailAndPassword(auth, email, password);
-                        currentUser = res.user;
-                    } else {
-                        const res = await signInWithEmailAndPassword(auth, email, password);
-                        currentUser = res.user;
-                    }
-                    closeAuthModal();
-                    updateAuthUI();
-                    loadData();
-                } catch (error) {
-                    alert("Lỗi Auth: " + error.message);
-                }
-            } else {
-                const mockUser = {
-                    uid: 'demo_' + btoa(email).substring(0, 8),
-                    displayName: email.split('@')[0],
-                    email: email,
-                    photoURL: 'https://placehold.co/100x100/1f2436/d4af37?text=YGO'
-                };
-                currentUser = mockUser;
-                localStorage.setItem('ygo_demo_user', JSON.stringify(mockUser));
-                closeAuthModal();
-                updateAuthUI();
-                loadData();
-            }
-        };
-
-        window.handleSignOut = function() {
-            if (isRealFirebase && auth) {
-                signOut(auth);
-            }
-            currentUser = null;
-            localStorage.removeItem('ygo_demo_user');
-            updateAuthUI();
-            loadData();
-        };
-
-        function updateAuthUI() {
-            const container = document.getElementById('auth-status-container');
-            if (currentUser) {
-                const name = currentUser.displayName || currentUser.email.split('@')[0];
-                container.innerHTML = `
-                    <div class="flex items-center space-x-3 bg-ygo-panelBg px-3 py-1.5 rounded-xl border border-gray-800">
-                        <img src="${currentUser.photoURL || 'https://placehold.co/80x80/d4af37/000000?text=Y'}" class="w-7 h-7 rounded-full border border-ygo-gold">
-                        <span class="text-xs font-bold text-white max-w-[120px] truncate">${name}</span>
-                        <button onclick="handleSignOut()" class="text-xs text-red-400 hover:text-red-300 ml-2" title="Đăng xuất">
-                            <i class="fa-solid fa-right-from-bracket"></i>
-                        </button>
-                    </div>
-                `;
-            } else {
-                container.innerHTML = `
-                    <button onclick="openAuthModal(false)" class="px-4 py-2 bg-ygo-panelBg hover:bg-gray-800 border border-ygo-gold/40 text-ygo-gold text-xs font-bold rounded-xl transition">
-                        <i class="fa-solid fa-user-check mr-1.5"></i> Đăng Nhập
-                    </button>
-                `;
-            }
-        }
-
-        const searchInput = document.getElementById('card-search-input');
-        const searchResults = document.getElementById('autocomplete-results');
-        const searchSpinner = document.getElementById('search-spinner');
-        let debounceTimer = null;
-
-        searchInput.addEventListener('input', (e) => {
-            clearTimeout(debounceTimer);
-            const query = e.target.value.trim();
-            if (query.length < 3) {
-                searchResults.classList.add('hidden');
-                return;
-            }
-
-            searchSpinner.classList.remove('hidden');
-            debounceTimer = setTimeout(async () => {
-                try {
-                    const res = await fetch(`https://db.ygoprodeck.com/api/v7/cardinfo.php?fname=${encodeURIComponent(query)}`);
-                    const data = await res.json();
-                    renderSearchResults(data.data ? data.data.slice(0, 8) : []);
-                } catch (err) {
-                    console.error("Card Search Error:", err);
-                } finally {
-                    searchSpinner.classList.add('hidden');
-                }
-            }, 300);
-        });
-
-        function renderSearchResults(cards) {
-            searchResults.innerHTML = '';
-            if (!cards || cards.length === 0) {
-                searchResults.innerHTML = '<div class="p-3 text-xs text-gray-500 text-center">Không tìm thấy lá bài nào</div>';
-            } else {
-                cards.forEach(card => {
-                    const item = document.createElement('div');
-                    item.className = 'p-2.5 hover:bg-ygo-cardBg cursor-pointer flex items-center space-x-3 transition';
-                    const imgUrl = card.card_images?.[0]?.image_url_small || '';
-                    item.innerHTML = `
-                        <img src="${imgUrl}" class="w-8 h-12 object-cover rounded">
-                        <div class="overflow-hidden">
-                            <p class="font-bold text-xs text-white truncate">${card.name}</p>
-                            <p class="text-[10px] text-ygo-gold truncate">${card.type} | ${card.race || ''}</p>
-                        </div>
-                    `;
-                    item.onclick = () => selectCard(card);
-                    searchResults.appendChild(item);
-                });
-            }
-            searchResults.classList.remove('hidden');
-        }
-
-        function selectCard(card) {
-            selectedSearchCard = card;
-            searchInput.value = card.name;
-            searchResults.classList.add('hidden');
-
-            const previewImg = document.getElementById('card-preview-img');
-            const previewContainer = document.getElementById('card-preview-container');
-            const previewTitle = document.getElementById('card-preview-title');
-            const previewType = document.getElementById('card-preview-type');
-
-            previewImg.src = card.card_images?.[0]?.image_url || '';
-            previewImg.classList.remove('hidden');
-            previewTitle.textContent = card.name;
-            previewType.textContent = `${card.type} - ${card.race || ''}`;
-        }
-
-        window.handleCardSubmit = async function() {
-            if (!currentUser) {
-                openAuthModal(false);
-                return;
-            }
-            if (!systemSettings.gateOpen) {
-                alert("Cổng đăng ký đề xuất bài cấm hiện đã ĐÓNG!");
-                return;
-            }
-            if (!selectedSearchCard) {
-                alert("Vui lòng chọn 1 lá bài từ danh sách gợi ý tìm kiếm!");
-                return;
-            }
-
-            const banStatus = document.getElementById('ban-status-select').value;
-            const reason = document.getElementById('ban-reason-input').value.trim();
-
-            const newSubmission = {
-                userId: currentUser.uid,
-                userName: currentUser.displayName || currentUser.email,
-                cardId: selectedSearchCard.id,
-                cardName: selectedSearchCard.name,
-                cardImg: selectedSearchCard.card_images?.[0]?.image_url_small || '',
-                banStatus: banStatus,
-                reason: reason,
-                createdAt: Date.now()
-            };
-
-            if (isRealFirebase) {
-                try {
-                    const colRef = collection(db, 'artifacts', APP_ID, 'public', 'data', 'submissions');
-                    await addDoc(colRef, newSubmission);
-                } catch(e) {
-                    alert("Lỗi Firestore: " + e.message);
-                }
-            } else {
-                let localData = JSON.parse(localStorage.getItem('ygo_local_submissions') || '[]');
-                localData.push(newSubmission);
-                localStorage.setItem('ygo_local_submissions', JSON.stringify(localData));
-                loadData();
-            }
-
-            alert("Gửi đề xuất thành công!");
-            // Reset Form
-            searchInput.value = '';
-            document.getElementById('ban-reason-input').value = '';
-        };
-
-        function loadData() {
-            if (isRealFirebase) {
-                try {
-                    const colRef = collection(db, 'artifacts', APP_ID, 'public', 'data', 'submissions');
-                    onSnapshot(colRef, (snapshot) => {
-                        allSubmissions = [];
-                        snapshot.forEach(docSnap => {
-                            allSubmissions.push({ id: docSnap.id, ...docSnap.data() });
-                        });
-                        renderAll();
-                    }, (err) => console.error("Firestore Listen Error:", err));
-                } catch(e) {}
-            } else {
-                allSubmissions = JSON.parse(localStorage.getItem('ygo_local_submissions') || '[]');
-                renderAll();
-            }
-        }
-
-        function renderAll() {
-            renderMySubmissions();
-            renderPublishedBanlist();
-            renderAdminDashboard();
-        }
-
-        function renderMySubmissions() {
-            const container = document.getElementById('my-submissions-list');
-            if (!currentUser) {
-                container.innerHTML = '<div class="text-center py-6 text-gray-500 col-span-full">Vui lòng đăng nhập để xem bình chọn của bạn.</div>';
-                return;
-            }
-
-            const mySubs = allSubmissions.filter(s => s.userId === currentUser.uid);
-            if (mySubs.length === 0) {
-                container.innerHTML = '<div class="text-center py-6 text-gray-500 col-span-full">Bạn chưa gửi đề xuất lá bài nào.</div>';
-                return;
-            }
-
-            container.innerHTML = mySubs.map(sub => `
-                <div class="bg-ygo-panelBg rounded-xl p-3 border border-gray-800 flex items-center space-x-3">
-                    <img src="${sub.cardImg}" class="w-12 h-16 object-cover rounded border border-ygo-gold/30">
-                    <div class="flex-grow min-w-0">
-                        <h4 class="font-bold text-sm text-white truncate">${sub.cardName}</h4>
-                        <span class="inline-block px-2 py-0.5 text-[10px] font-bold rounded mt-1 ${getStatusBadgeClass(sub.banStatus)}">
-                            ${sub.banStatus}
-                        </span>
-                        ${sub.reason ? `<p class="text-[11px] text-gray-400 mt-1 truncate">"${sub.reason}"</p>` : ''}
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        function getStatusBadgeClass(status) {
-            if (status === 'Forbidden') return 'bg-red-500/20 text-red-400 border border-red-500/30';
-            if (status === 'Limited') return 'bg-amber-500/20 text-amber-400 border border-amber-500/30';
-            return 'bg-blue-500/20 text-blue-400 border border-blue-500/30';
-        }
-
-        function renderPublishedBanlist() {
-            const pubBadge = document.getElementById('banlist-published-status');
-            if (systemSettings.banlistPublished) {
-                pubBadge.className = "px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30";
-                pubBadge.innerHTML = '<i class="fa-solid fa-eye mr-1"></i> Đã công bố';
-            } else {
-                pubBadge.className = "px-3 py-1 rounded-full text-xs font-semibold bg-gray-800 text-gray-400 border border-gray-700";
-                pubBadge.innerHTML = '<i class="fa-solid fa-lock mr-1"></i> Bật chế độ bí mật';
-            }
-
-            const forbiddenBox = document.getElementById('published-forbidden-cards');
-            const limitedBox = document.getElementById('published-limited-cards');
-            const semiBox = document.getElementById('published-semilimited-cards');
-
-            if (!systemSettings.banlistPublished && !isAdminLoggedIn) {
-                const hiddenMsg = '<div class="col-span-full py-8 text-center text-gray-500 text-xs">Banlist chưa được công bố bởi Admin.</div>';
-                forbiddenBox.innerHTML = hiddenMsg;
-                limitedBox.innerHTML = hiddenMsg;
-                semiBox.innerHTML = hiddenMsg;
-                return;
-            }
-
-            // Grouping submissions by card and counting overlap
-            const grouped = {};
-            allSubmissions.forEach(s => {
-                const key = `${s.cardName}_${s.banStatus}`;
-                if (!grouped[key]) {
-                    grouped[key] = { ...s, count: 0 };
-                }
-                grouped[key].count++;
-            });
-
-            const cardsList = Object.values(grouped);
-
-            renderCardGroup(cardsList.filter(c => c.banStatus === 'Forbidden'), forbiddenBox);
-            renderCardGroup(cardsList.filter(c => c.banStatus === 'Limited'), limitedBox);
-            renderCardGroup(cardsList.filter(c => c.banStatus === 'Semi-Limited'), semiBox);
-        }
-
-        function renderCardGroup(cards, container) {
-            if (cards.length === 0) {
-                container.innerHTML = '<div class="col-span-full py-4 text-center text-gray-600 text-xs">Chưa có lá bài nào</div>';
-                return;
-            }
-
-            container.innerHTML = cards.map(c => `
-                <div class="bg-ygo-panelBg rounded-xl p-2.5 border border-gray-800 flex flex-col items-center text-center relative group">
-                    ${c.count > 1 ? `<span class="absolute top-2 right-2 bg-ygo-gold text-black font-extrabold text-[10px] px-1.5 py-0.5 rounded-full shadow">${c.count} bình chọn</span>` : ''}
-                    <img src="${c.cardImg}" class="w-20 h-28 object-cover rounded shadow mb-2 group-hover:scale-105 transition">
-                    <p class="font-bold text-xs text-white truncate max-w-full">${c.cardName}</p>
-                </div>
-            `).join('');
-        }
-
-        window.verifyAdminKey = function() {
-            const key = document.getElementById('admin-key-input').value;
-            if (key === 'YGO2026ADMIN' || key === 'admin') {
-                isAdminLoggedIn = true;
-                document.getElementById('admin-lock-screen').classList.add('hidden');
-                document.getElementById('admin-dashboard').classList.remove('hidden');
-                renderAdminDashboard();
-                renderPublishedBanlist();
-            } else {
-                alert("Mã Admin Key không chính xác!");
-            }
-        };
-
-        function renderAdminDashboard() {
-            if (!isAdminLoggedIn) return;
-
-            document.getElementById('total-submissions-count').textContent = allSubmissions.length;
-            const tbody = document.getElementById('admin-submissions-tbody');
-
-            if (allSubmissions.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" class="text-center py-6 text-gray-500">Chưa có đề xuất nào.</td></tr>';
-                return;
-            }
-
-            tbody.innerHTML = allSubmissions.map((s, idx) => `
-                <tr class="hover:bg-ygo-panelBg/50 transition">
-                    <td class="p-3 font-semibold text-white">${s.userName}</td>
-                    <td class="p-3 flex items-center space-x-2">
-                        <img src="${s.cardImg}" class="w-6 h-8 object-cover rounded">
-                        <span class="font-bold text-ygo-gold">${s.cardName}</span>
-                    </td>
-                    <td class="p-3"><span class="px-2 py-0.5 rounded text-[10px] font-bold ${getStatusBadgeClass(s.banStatus)}">${s.banStatus}</span></td>
-                    <td class="p-3 text-gray-400 max-w-xs truncate">${s.reason || '--'}</td>
-                    <td class="p-3">
-                        <button onclick="deleteSubmission('${s.id || idx}')" class="text-red-400 hover:text-red-300 font-bold text-xs">
-                            <i class="fa-solid fa-trash"></i>
-                        </button>
-                    </td>
+        <div class="border-t border-slate-800 pt-4">
+          <h3 class="font-bold text-sm text-slate-200 mb-3">Danh Sách Lá Bài Đã Nộp (<span id="submissionCount">0</span>)</h3>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-slate-300 border-collapse">
+              <thead>
+                <tr class="border-b border-slate-800 bg-slate-950 text-slate-400">
+                  <th class="p-3">Người Nộp</th>
+                  <th class="p-3">Tên Lá Bài</th>
+                  <th class="p-3">Trạng Thái</th>
+                  <th class="p-3">Lý Do</th>
+                  <th class="p-3">Hành Động</th>
                 </tr>
-            `).join('');
+              </thead>
+              <tbody id="adminTableBody">
+                <tr><td colspan="5" class="p-4 text-center text-slate-500">Chưa có dữ liệu đề xuất nào</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+
+  <footer class="bg-slate-950 border-t border-slate-900 py-4 text-center text-xs text-slate-600">
+    YGO Banlist Hub &copy; 2026 - Powered by Firebase Cloud & YGOPRODeck API
+  </footer>
+
+  <!-- App Script -->
+  <script>
+    // --- FIREBASE CONFIG (HARDCODED CUSTOM-BANLIST) ---
+    const firebaseConfig = {
+      apiKey: "AIzaSyA39hLsaOJNAp3PRPb1WmWSA4Y6kPEj14Y",
+      authDomain: "custom-banlist.firebaseapp.com",
+      projectId: "custom-banlist",
+      storageBucket: "custom-banlist.firebasestorage.app",
+      messagingSenderId: "415934580723",
+      appId: "1:415934580723:web:39b0cf73b3c43933bdb486",
+      measurementId: "G-N4D9VHCNX6"
+    };
+
+    // Initialize Firebase
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    // Global State
+    let currentUser = null;
+    let selectedCard = null;
+    let officialBanlistData = [];
+    let isGateOpen = true;
+    let isPublished = false;
+
+    // App Initialization
+    window.addEventListener('DOMContentLoaded', () => {
+      // Auth State Listener
+      auth.onAuthStateChanged(user => {
+        currentUser = user;
+        updateUserUI();
+      });
+
+      // Load Official OCG Banlist
+      loadOfficialOCGBanlist();
+
+      // Listen for Config & Submissions Realtime
+      setupRealtimeListeners();
+    });
+
+    // --- AUTHENTICATION ---
+    function loginWithGoogle() {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      auth.signInWithPopup(provider).catch(error => {
+        alert("Lỗi đăng nhập: " + error.message);
+      });
+    }
+
+    function logout() {
+      auth.signOut();
+    }
+
+    function updateUserUI() {
+      if (currentUser) {
+        document.getElementById('btnLogin').classList.add('hidden');
+        document.getElementById('userInfo').classList.remove('hidden');
+        document.getElementById('userAvatar').src = currentUser.photoURL || 'https://via.placeholder.com/150';
+        document.getElementById('userName').textContent = currentUser.displayName || currentUser.email;
+      } else {
+        document.getElementById('btnLogin').classList.remove('hidden');
+        document.getElementById('userInfo').classList.add('hidden');
+      }
+    }
+
+    // --- REALTIME LISTENERS ---
+    function setupRealtimeListeners() {
+      // Listen Config
+      db.collection('settings').doc('config').onSnapshot(doc => {
+        if (doc.exists) {
+          const data = doc.data();
+          isGateOpen = data.isGateOpen ?? true;
+          isPublished = data.isPublished ?? false;
+
+          document.getElementById('gateBadge').className = isGateOpen 
+            ? "text-xs px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-semibold"
+            : "text-xs px-2.5 py-1 rounded-full bg-red-500/10 text-red-400 border border-red-500/20 font-semibold";
+          document.getElementById('gateBadge').textContent = isGateOpen ? "🟢 Đang Mở Đăng Ký" : "🔴 Đã Đóng Đăng Ký";
+
+          updateCustomBanlistUI();
         }
+      });
 
-        window.deleteSubmission = async function(id) {
-            if (isRealFirebase) {
-                try {
-                    await deleteDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'submissions', id));
-                } catch(e) {}
-            } else {
-                let localData = JSON.parse(localStorage.getItem('ygo_local_submissions') || '[]');
-                localData.splice(parseInt(id), 1);
-                localStorage.setItem('ygo_local_submissions', JSON.stringify(localData));
-                loadData();
-            }
-        };
+      // Listen Submissions
+      db.collection('submissions').onSnapshot(snapshot => {
+        const submissions = [];
+        snapshot.forEach(doc => submissions.push({ id: doc.id, ...doc.data() }));
+        
+        document.getElementById('submissionCount').textContent = submissions.length;
+        renderAdminTable(submissions);
+        renderCustomBanlist(submissions);
+      });
+    }
 
-        window.toggleSubmissionGate = function() {
-            systemSettings.gateOpen = !systemSettings.gateOpen;
-            const btn = document.getElementById('toggle-gate-btn');
-            const badge = document.getElementById('gate-status-badge');
+    // --- YGOPRODECK CARD SEARCH ---
+    let searchTimeout = null;
+    function handleCardSearch(query) {
+      clearTimeout(searchTimeout);
+      const dropdown = document.getElementById('searchDropdown');
+      
+      if (!query || query.length < 2) {
+        dropdown.classList.add('hidden');
+        return;
+      }
 
-            if (systemSettings.gateOpen) {
-                btn.className = "px-4 py-2.5 rounded-xl font-bold text-xs bg-emerald-600 hover:bg-emerald-500 text-white transition";
-                btn.innerHTML = '<i class="fa-solid fa-lock-open mr-1"></i> Đang Mở (Bấm để Đóng)';
-                badge.className = "px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30";
-                badge.innerHTML = '<i class="fa-solid fa-unlock mr-1"></i> Đang Mở Đăng Ký';
-            } else {
-                btn.className = "px-4 py-2.5 rounded-xl font-bold text-xs bg-red-600 hover:bg-red-500 text-white transition";
-                btn.innerHTML = '<i class="fa-solid fa-lock mr-1"></i> Đã Đóng (Bấm để Mở)';
-                badge.className = "px-3 py-1 rounded-full text-xs font-semibold bg-red-500/20 text-red-400 border border-red-500/30";
-                badge.innerHTML = '<i class="fa-solid fa-lock mr-1"></i> Đã Khóa Đăng Ký';
-            }
-        };
-
-        window.togglePublishBanlist = function() {
-            systemSettings.banlistPublished = !systemSettings.banlistPublished;
-            const btn = document.getElementById('toggle-publish-btn');
-            if (systemSettings.banlistPublished) {
-                btn.className = "px-4 py-2.5 rounded-xl font-bold text-xs bg-emerald-600 hover:bg-emerald-500 text-white transition";
-                btn.innerHTML = '<i class="fa-solid fa-eye mr-1"></i> Đã Công Bố (Bấm để Ẩn)';
-            } else {
-                btn.className = "px-4 py-2.5 rounded-xl font-bold text-xs bg-gray-700 hover:bg-gray-600 text-white transition";
-                btn.innerHTML = '<i class="fa-solid fa-eye-slash mr-1"></i> Chưa Công Bố (Bấm để Hiện)';
-            }
-            renderPublishedBanlist();
-        };
-
-        window.exportBanlistText = function() {
-            let text = "=== YU-GI-OH! COMMUNITY BANLIST ===\n\n";
-            ['Forbidden', 'Limited', 'Semi-Limited'].forEach(status => {
-                text += `[${status.toUpperCase()}]\n`;
-                const filtered = allSubmissions.filter(s => s.banStatus === status);
-                if (filtered.length === 0) {
-                    text += "- None\n";
-                } else {
-                    const counts = {};
-                    filtered.forEach(s => counts[s.cardName] = (counts[s.cardName] || 0) + 1);
-                    Object.entries(counts).forEach(([card, count]) => {
-                        text += `- ${card} (${count} bình chọn)\n`;
-                    });
-                }
-                text += "\n";
+      searchTimeout = setTimeout(async () => {
+        try {
+          const res = await fetch(`https://db.ygoprodeck.com/api/v7/cardinfo.php?fname=${encodeURIComponent(query)}`);
+          const data = await res.json();
+          
+          dropdown.innerHTML = '';
+          if (data.data && data.data.length > 0) {
+            data.data.slice(0, 8).forEach(card => {
+              const item = document.createElement('div');
+              item.className = 'p-2.5 hover:bg-slate-800 cursor-pointer flex items-center gap-3 border-b border-slate-800/50 text-xs';
+              item.innerHTML = `
+                <img src="${card.card_images[0].image_url_small}" class="w-8 h-12 object-cover rounded">
+                <div>
+                  <div class="font-bold text-slate-200">${card.name}</div>
+                  <div class="text-slate-500">${card.type}</div>
+                </div>
+              `;
+              item.onclick = () => selectCard(card);
+              dropdown.appendChild(item);
             });
+            dropdown.classList.remove('hidden');
+          } else {
+            dropdown.classList.add('hidden');
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      }, 300);
+    }
 
-            // Copy to clipboard
-            const el = document.createElement('textarea');
-            el.value = text;
-            document.body.appendChild(el);
-            el.select();
-            document.execCommand('copy');
-            document.body.removeChild(el);
+    function selectCard(card) {
+      selectedCard = card;
+      document.getElementById('cardSearch').value = card.name;
+      document.getElementById('searchDropdown').classList.add('hidden');
 
-            alert("Đã sao chép văn bản Banlist vào Clipboard!");
-        };
+      document.getElementById('cardPreviewContainer').innerHTML = `
+        <img src="${card.card_images[0].image_url}" class="w-full h-full object-contain rounded">
+      `;
+      document.getElementById('previewTitle').textContent = card.name;
+      document.getElementById('previewType').textContent = card.type;
+    }
 
-        window.switchTab = function(tabId) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-            document.getElementById(tabId).classList.remove('hidden');
+    // --- SUBMIT PROPOSAL ---
+    async function submitProposal() {
+      if (!currentUser) {
+        alert("Vui lòng đăng nhập Google trước khi gửi đề xuất!");
+        return;
+      }
+      if (!isGateOpen) {
+        alert("Cổng nộp lá bài hiện đang đóng!");
+        return;
+      }
+      if (!selectedCard) {
+        alert("Vui lòng tìm và chọn 1 lá bài!");
+        return;
+      }
 
-            const btnSub = document.getElementById('tab-btn-sub');
-            const btnList = document.getElementById('tab-btn-list');
-            const btnAdmin = document.getElementById('tab-btn-admin');
+      const status = document.getElementById('banStatus').value;
+      const reason = document.getElementById('banReason').value || "Không có lý do";
 
-            [btnSub, btnList, btnAdmin].forEach(b => {
-                b.className = "py-3 px-4 text-sm font-semibold border-b-2 border-transparent text-gray-400 hover:text-gray-200 flex items-center space-x-2 whitespace-nowrap";
-            });
-
-            if (tabId === 'submission-tab') btnSub.className = "py-3 px-4 text-sm font-semibold border-b-2 border-ygo-gold text-ygo-gold flex items-center space-x-2 whitespace-nowrap";
-            if (tabId === 'banlist-tab') btnList.className = "py-3 px-4 text-sm font-semibold border-b-2 border-ygo-gold text-ygo-gold flex items-center space-x-2 whitespace-nowrap";
-            if (tabId === 'admin-tab') btnAdmin.className = "py-3 px-4 text-sm font-semibold border-b-2 border-ygo-gold text-ygo-gold flex items-center space-x-2 whitespace-nowrap";
-        };
-
-        window.openAuthModal = function(isSignUp) {
-            isAuthSignUp = isSignUp;
-            document.getElementById('auth-modal').classList.remove('hidden');
-            document.getElementById('auth-modal-title').textContent = isSignUp ? "Đăng Ký Tài Khoản" : "Đăng Nhập Bài Thủ";
-            document.getElementById('auth-submit-btn').textContent = isSignUp ? "Đăng Ký" : "Đăng Nhập";
-        };
-
-        window.closeAuthModal = function() {
-            document.getElementById('auth-modal').classList.add('hidden');
-        };
-
-        window.toggleAuthMode = function() {
-            openAuthModal(!isAuthSignUp);
-        };
-
-        window.openConfigModal = function() {
-            document.getElementById('config-modal').classList.remove('hidden');
-        };
-
-        window.closeConfigModal = function() {
-            document.getElementById('config-modal').classList.add('hidden');
-        };
-
-        window.saveFirebaseConfig = function() {
-            const config = {
-                apiKey: document.getElementById('cfg-apiKey').value.trim(),
-                authDomain: document.getElementById('cfg-authDomain').value.trim(),
-                projectId: document.getElementById('cfg-projectId').value.trim(),
-                appId: document.getElementById('cfg-appId').value.trim()
-            };
-
-            if (!config.apiKey || !config.projectId) {
-                alert("Vui lòng nhập đầy đủ API Key và Project ID!");
-                return;
-            }
-
-            localStorage.setItem('custom_firebase_config', JSON.stringify(config));
-            closeConfigModal();
-            location.reload();
-        };
-
-        window.clearCustomFirebaseConfig = function() {
-            localStorage.removeItem('custom_firebase_config');
-            closeConfigModal();
-            location.reload();
-        };
-
-        // Initialize on Load
-        window.addEventListener('DOMContentLoaded', () => {
-            initFirebase();
+      try {
+        await db.collection('submissions').doc(currentUser.uid).set({
+          uid: currentUser.uid,
+          userName: currentUser.displayName || currentUser.email,
+          userPhoto: currentUser.photoURL || '',
+          cardId: selectedCard.id,
+          cardName: selectedCard.name,
+          cardImage: selectedCard.card_images[0].image_url,
+          status: status,
+          reason: reason,
+          timestamp: firebase.firestore.FieldValue.serverTimestamp()
         });
-    </script>
+        alert("Đã gửi đề xuất lá bài cấm thành công!");
+      } catch (e) {
+        alert("Lỗi khi gửi đề xuất: " + e.message);
+      }
+    }
+
+    // --- OFFICIAL OCG BANLIST ---
+    async function loadOfficialOCGBanlist() {
+      try {
+        const res = await fetch('https://db.ygoprodeck.com/api/v7/cardinfo.php?banlist=ocg');
+        const data = await res.json();
+        
+        if (data.data) {
+          officialBanlistData = data.data;
+          renderOfficialBanlist(officialBanlistData);
+        }
+      } catch (e) {
+        document.getElementById('officialListLoader').innerHTML = '<p class="text-red-400 text-xs">Lỗi khi tải OCG Banlist</p>';
+      }
+    }
+
+    function renderOfficialBanlist(cards) {
+      document.getElementById('officialListLoader').classList.add('hidden');
+      const grid = document.getElementById('officialGrid');
+      grid.classList.remove('hidden');
+      grid.innerHTML = '';
+
+      cards.slice(0, 60).forEach(card => {
+        const banState = card.banlist_info?.ban_ocg || 'Forbidden';
+        const cardEl = document.createElement('div');
+        cardEl.className = 'bg-slate-950 border border-slate-800 rounded-lg p-2 text-center card-glow transition flex flex-col items-center';
+        cardEl.innerHTML = `
+          <div class="relative w-full aspect-[2/3] mb-2">
+            <img src="${card.card_images[0].image_url_small}" class="w-full h-full object-cover rounded">
+            <span class="absolute top-1 right-1 text-[10px] font-bold px-1.5 py-0.5 rounded bg-red-600 text-white shadow">
+              ${banState}
+            </span>
+          </div>
+          <h4 class="font-bold text-xs text-slate-200 line-clamp-1">${card.name}</h4>
+        `;
+        grid.appendChild(cardEl);
+      });
+    }
+
+    function filterOfficialList() {
+      const q = document.getElementById('officialSearch').value.toLowerCase();
+      const filtered = officialBanlistData.filter(c => c.name.toLowerCase().includes(q));
+      renderOfficialBanlist(filtered);
+    }
+
+    // --- CUSTOM BANLIST UI ---
+    function updateCustomBanlistUI() {
+      if (isPublished) {
+        document.getElementById('customBanlistHeader').classList.add('hidden');
+        document.getElementById('customBanlistContent').classList.remove('hidden');
+      } else {
+        document.getElementById('customBanlistHeader').classList.remove('hidden');
+        document.getElementById('customBanlistContent').classList.add('hidden');
+      }
+    }
+
+    function renderCustomBanlist(submissions) {
+      const content = document.getElementById('customBanlistContent');
+      content.innerHTML = '';
+
+      submissions.forEach(sub => {
+        const item = document.createElement('div');
+        item.className = 'bg-slate-950 border border-slate-800 rounded-lg p-2 text-center card-glow transition flex flex-col items-center';
+        item.innerHTML = `
+          <div class="relative w-full aspect-[2/3] mb-2">
+            <img src="${sub.cardImage}" class="w-full h-full object-cover rounded">
+            <span class="absolute top-1 right-1 text-[10px] font-bold px-1.5 py-0.5 rounded bg-red-600 text-white shadow">
+              ${sub.status}
+            </span>
+          </div>
+          <h4 class="font-bold text-xs text-slate-200 line-clamp-1">${sub.cardName}</h4>
+          <p class="text-[10px] text-slate-500 mt-0.5">Bởi: ${sub.userName}</p>
+        `;
+        content.appendChild(item);
+      });
+    }
+
+    // --- ADMIN CONTROLS ---
+    function renderAdminTable(submissions) {
+      const tbody = document.getElementById('adminTableBody');
+      if (submissions.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-slate-500">Chưa có dữ liệu đề xuất nào</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = '';
+      submissions.forEach(sub => {
+        const tr = document.createElement('tr');
+        tr.className = 'border-b border-slate-800 hover:bg-slate-900/50';
+        tr.innerHTML = `
+          <td class="p-3 flex items-center gap-2">
+            <img src="${sub.userPhoto || 'https://via.placeholder.com/150'}" class="w-6 h-6 rounded-full">
+            <span>${sub.userName}</span>
+          </td>
+          <td class="p-3 font-semibold text-yellow-500">${sub.cardName}</td>
+          <td class="p-3"><span class="bg-red-500/10 text-red-400 border border-red-500/20 px-2 py-0.5 rounded text-[10px]">${sub.status}</span></td>
+          <td class="p-3 text-slate-400 max-w-xs truncate">${sub.reason}</td>
+          <td class="p-3">
+            <button onclick="deleteSubmission('${sub.id}')" class="text-red-400 hover:text-red-300" title="Xóa"><i class="fa-solid fa-trash"></i></button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    async function toggleGate() {
+      try {
+        await db.collection('settings').doc('config').set({ isGateOpen: !isGateOpen }, { merge: true });
+      } catch (e) { alert("Lỗi Admin: " + e.message); }
+    }
+
+    async function togglePublish() {
+      try {
+        await db.collection('settings').doc('config').set({ isPublished: !isPublished }, { merge: true });
+      } catch (e) { alert("Lỗi Admin: " + e.message); }
+    }
+
+    async function deleteSubmission(id) {
+      if (confirm("Bạn có chắc chắn muốn xóa đề xuất này?")) {
+        await db.collection('submissions').doc(id).delete();
+      }
+    }
+
+    // --- TAB SWITCHING ---
+    function switchTab(tab) {
+      ['Submit', 'Official', 'Custom', 'Admin'].forEach(t => {
+        document.getElementById(`tab${t}`).classList.add('hidden');
+        document.getElementById(`tab${t}Btn`).className = "px-4 py-2 font-bold text-sm text-slate-400 hover:text-slate-200 transition flex items-center gap-2";
+      });
+
+      const activeBtn = document.getElementById(`tab${tab.charAt(0).toUpperCase() + tab.slice(1)}Btn`);
+      activeBtn.className = "px-4 py-2 font-bold text-sm border-b-2 border-yellow-500 text-yellow-500 transition flex items-center gap-2";
+      document.getElementById(`tab${tab.charAt(0).toUpperCase() + tab.slice(1)}`).classList.remove('hidden');
+    }
+  </script>
 </body>
 </html>
