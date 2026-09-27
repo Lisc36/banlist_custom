@@ -492,23 +492,38 @@
     }
 
     async function submitProposal() {
-      if (!currentUser) return alert("Vui lòng đăng nhập!");
-      if (!selectedCard) return alert("Chưa chọn lá bài!");
+  if (!currentUser) {
+    return alert("❌ Vui lòng đăng nhập để thực hiện!");
+  }
 
-      await db.collection('submissions').doc(currentUser.uid + '_' + selectedCard.id).set({
-        uid: currentUser.uid,
-        userName: currentUser.displayName || currentUser.email,
-        cardId: selectedCard.id,
-        cardName: selectedCard.name,
-        cardImage: selectedCard.card_images[0]?.image_url_small,
-        status: document.getElementById('banStatus').value,
-        reason: document.getElementById('banReason').value || "",
-        isApproved: false,
-        timestamp: firebase.firestore.FieldValue.serverTimestamp()
-      });
+  // Bổ sung kiểm tra quyền bỏ phiếu / nộp bài
+  const isAllowed = ADMIN_EMAILS.includes(currentUser.email) || ALLOWED_VOTERS.includes(currentUser.email);
+  if (!isAllowed) {
+    return alert("🔒 Tài khoản của bạn không thuộc danh sách được phép nộp / cấm lá bài!");
+  }
 
-      alert(`Đã nộp [${selectedCard.name}] thành công!`);
-    }
+  if (!selectedCard) {
+    return alert("⚠️ Vui lòng tìm và chọn lá bài trước!");
+  }
+
+  try {
+    await db.collection('submissions').doc(currentUser.uid + '_' + selectedCard.id).set({
+      uid: currentUser.uid,
+      userName: currentUser.displayName || currentUser.email,
+      cardId: selectedCard.id,
+      cardName: selectedCard.name,
+      cardImage: selectedCard.card_images[0]?.image_url_small,
+      status: document.getElementById('banStatus').value,
+      reason: document.getElementById('banReason').value || "",
+      isApproved: false,
+      timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    alert(`🎉 Đã nộp [${selectedCard.name}] thành công! Đang chờ Admin duyệt.`);
+  } catch (error) {
+    alert("❌ Lỗi khi gửi dữ liệu: " + error.message);
+  }
+}
   </script>
 </body>
 </html>
