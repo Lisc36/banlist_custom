@@ -120,6 +120,18 @@
           <button id="btnSubmitProposal" onclick="submitProposal()" class="w-full bg-yellow-500 hover:bg-yellow-600 text-slate-950 font-bold py-3 rounded-lg text-sm transition flex justify-center items-center gap-2">
             <i class="fa-solid fa-file-export"></i> NỘP LÁ BÀI
           </button>
+
+          <!-- Dòng thông báo xin cấp quyền -->
+          <div class="mt-3 p-3 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-400 flex items-center">
+            <i class="fa-solid fa-circle-info text-yellow-500 mr-2 text-sm flex-shrink-0"></i>
+            <span>
+              Chưa được cấp quyền nộp lá bài? Vui lòng gửi tin nhắn cho 
+              <a href="https://www.facebook.com/lisc.toussaint/" target="_blank" rel="noopener noreferrer" class="text-yellow-500 hover:underline font-bold">
+                Chương Trần
+              </a> 
+              để được cấp quyền cho Gmail của bạn.
+            </span>
+          </div>
         </div>
 
         <div class="flex flex-col items-center justify-center bg-slate-950 border border-slate-800 rounded-lg p-3 min-h-[200px]">
@@ -142,7 +154,7 @@
           </h3>
           <p class="text-xs text-slate-400">Các lá do Bài Thủ nộp thành công sẽ được ghim lên đầu</p>
         </div>
-        <input type="text" id="banlistSearch" oninput="handleBanlistFilter(this.value)" placeholder="🔍 Loc nhanh trong banlist..." 
+        <input type="text" id="banlistSearch" oninput="handleBanlistFilter(this.value)" placeholder="🔍 Lọc nhanh trong banlist..." 
                class="w-full sm:w-64 bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-yellow-500">
       </div>
 
@@ -193,15 +205,15 @@
     const ADMIN_EMAILS = ["trananhchuong112@gmail.com"];
     const ALLOWED_VOTERS = [
       "trananhchuong112@gmail.com",
-       "hokhaidien.dt2017@gmail.com",
+      "hokhaidien.dt2017@gmail.com",
       "kurumitokisaki15111006@gmail.com",
       "Mrlinhxyz123@gmail.com",
       "lehuuhoangan2009@gmail.com",
-       "Longsigma04@gmail.com",
+      "Longsigma04@gmail.com",
       "kitkalo217@gmail.com",
       "thithoi666@gmail.com",
       "omegachilantaisaurus@gmail.com",
-  ];
+    ];
 
     const firebaseConfig = {
       apiKey: "AIzaSyA39hLsaOJNAp3PRPb1WmWSA4Y6kPEj14Y",
@@ -240,6 +252,7 @@
     function updateUserUI() {
       const adminPanel = document.getElementById('adminPanel');
       const badge = document.getElementById('userPermissionBadge');
+      const btnSubmit = document.getElementById('btnSubmitProposal');
 
       if (currentUser) {
         document.getElementById('btnLogin').classList.add('hidden');
@@ -248,17 +261,40 @@
         document.getElementById('userName').textContent = currentUser.displayName || currentUser.email;
 
         const isAdmin = ADMIN_EMAILS.includes(currentUser.email);
+        const isVoter = ALLOWED_VOTERS.includes(currentUser.email);
+
         if (isAdmin) {
           adminPanel.classList.remove('hidden');
           badge.textContent = "⭐ Admin";
         } else {
           adminPanel.classList.add('hidden');
-          badge.textContent = ALLOWED_VOTERS.includes(currentUser.email) ? "✅ Member" : "🔒 Guest";
+          badge.textContent = isVoter ? "✅ Member" : "🔒 Guest";
+        }
+
+        // Khóa nút nếu chưa được cấp quyền
+        if (!isAdmin && !isVoter) {
+          if (btnSubmit) {
+            btnSubmit.disabled = true;
+            btnSubmit.classList.add('opacity-50', 'cursor-not-allowed');
+            btnSubmit.innerHTML = `🔒 CHƯA CÓ QUYỀN (Nhắn <a href="https://www.facebook.com/lisc.toussaint/" target="_blank" class="underline text-yellow-400 font-bold ml-1">Chương Trần</a>)`;
+          }
+        } else {
+          if (btnSubmit) {
+            btnSubmit.disabled = false;
+            btnSubmit.classList.remove('opacity-50', 'cursor-not-allowed');
+            btnSubmit.innerHTML = `<i class="fa-solid fa-file-export"></i> NỘP LÁ BÀI`;
+          }
         }
       } else {
         document.getElementById('btnLogin').classList.remove('hidden');
         document.getElementById('userInfo').classList.add('hidden');
         adminPanel.classList.add('hidden');
+
+        if (btnSubmit) {
+          btnSubmit.disabled = false;
+          btnSubmit.classList.remove('opacity-50', 'cursor-not-allowed');
+          btnSubmit.innerHTML = `<i class="fa-solid fa-file-export"></i> NỘP LÁ BÀI`;
+        }
       }
     }
 
@@ -275,7 +311,6 @@
         } catch(e) {}
       }
 
-      // Timeout 3.5 giây để phòng nghẽn mạng
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), 3500);
 
@@ -285,7 +320,6 @@
         const data = await res.json();
 
         if (data && data.data) {
-          // Bóc tách tối giản triệt để chỉ giữ lại 4 thuộc tính cơ bản
           ocgBanlistCards = data.data.map(c => ({
             id: c.id,
             name: c.name,
@@ -342,7 +376,6 @@
       renderGridBatch(combinedBanlist);
     }
 
-    // TỐI ƯU RENDER CHUNK CHỐNG TREO MÀN HÌNH (RENDER CHIA NHỎ THEO CẶP)
     function renderGridBatch(list) {
       const forbidden = list.filter(c => c.status === 'Forbidden');
       const limited = list.filter(c => c.status === 'Limited');
@@ -366,7 +399,6 @@
         return;
       }
 
-      // Giới hạn ban đầu chỉ render 40 lá đầu tiên để nhẹ RAM
       const initialCards = cards.slice(0, 40);
       const frag = document.createDocumentFragment();
 
@@ -386,7 +418,6 @@
 
       grid.appendChild(frag);
 
-      // Nếu số lượng lá bài > 40, nạp tiếp đợt 2 sau 100ms
       if (cards.length > 40) {
         setTimeout(() => {
           const restFrag = document.createDocumentFragment();
@@ -494,38 +525,37 @@
     }
 
     async function submitProposal() {
-  if (!currentUser) {
-    return alert("❌ Vui lòng đăng nhập để thực hiện!");
-  }
+      if (!currentUser) {
+        return alert("❌ Vui lòng đăng nhập để thực hiện!");
+      }
 
-  // Bổ sung kiểm tra quyền bỏ phiếu / nộp bài
-  const isAllowed = ADMIN_EMAILS.includes(currentUser.email) || ALLOWED_VOTERS.includes(currentUser.email);
-  if (!isAllowed) {
-    return alert("🔒 Tài khoản của bạn không thuộc danh sách được phép nộp / cấm lá bài!");
-  }
+      const isAllowed = ADMIN_EMAILS.includes(currentUser.email) || ALLOWED_VOTERS.includes(currentUser.email);
+      if (!isAllowed) {
+        return alert("🔒 Tài khoản của bạn không thuộc danh sách được phép nộp / cấm lá bài!");
+      }
 
-  if (!selectedCard) {
-    return alert("⚠️ Vui lòng tìm và chọn lá bài trước!");
-  }
+      if (!selectedCard) {
+        return alert("⚠️ Vui lòng tìm và chọn lá bài trước!");
+      }
 
-  try {
-    await db.collection('submissions').doc(currentUser.uid + '_' + selectedCard.id).set({
-      uid: currentUser.uid,
-      userName: currentUser.displayName || currentUser.email,
-      cardId: selectedCard.id,
-      cardName: selectedCard.name,
-      cardImage: selectedCard.card_images[0]?.image_url_small,
-      status: document.getElementById('banStatus').value,
-      reason: document.getElementById('banReason').value || "",
-      isApproved: false,
-      timestamp: firebase.firestore.FieldValue.serverTimestamp()
-    });
+      try {
+        await db.collection('submissions').doc(currentUser.uid + '_' + selectedCard.id).set({
+          uid: currentUser.uid,
+          userName: currentUser.displayName || currentUser.email,
+          cardId: selectedCard.id,
+          cardName: selectedCard.name,
+          cardImage: selectedCard.card_images[0]?.image_url_small,
+          status: document.getElementById('banStatus').value,
+          reason: document.getElementById('banReason').value || "",
+          isApproved: false,
+          timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        });
 
-    alert(`🎉 Đã nộp [${selectedCard.name}] thành công! Đang chờ Admin duyệt.`);
-  } catch (error) {
-    alert("❌ Lỗi khi gửi dữ liệu: " + error.message);
-  }
-}
+        alert(`🎉 Đã nộp [${selectedCard.name}] thành công! Đang chờ Admin duyệt.`);
+      } catch (error) {
+        alert("❌ Lỗi khi gửi dữ liệu: " + error.message);
+      }
+    }
   </script>
 </body>
 </html>
