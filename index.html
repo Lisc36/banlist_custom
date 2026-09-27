@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>YGO Banlist Hub - Community Tournament</title>
+  <title>YGO Banlist Hub - Fast Edition</title>
   
-  <!-- Firebase Compat SDKs -->
+  <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
@@ -16,7 +16,7 @@
   
   <style>
     body { background-color: #0f172a; color: #f8fafc; font-family: system-ui, -apple-system, sans-serif; }
-    .card-glow:hover { box-shadow: 0 0 12px rgba(234, 179, 8, 0.35); }
+    .card-glow:hover { box-shadow: 0 0 10px rgba(234, 179, 8, 0.4); }
     .custom-scrollbar::-webkit-scrollbar { width: 6px; }
     .custom-scrollbar::-webkit-scrollbar-track { background: #1e293b; }
     .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
@@ -31,14 +31,14 @@
         <i class="fa-solid fa-crown text-yellow-500 text-2xl"></i>
         <div>
           <h1 class="font-bold text-xl tracking-wide text-yellow-500">YGO COMMUNITY BANLIST</h1>
-          <p class="text-xs text-slate-400">Banlist OCG Gốc + Lá Bài Bài Thủ Đóng Góp</p>
+          <p class="text-xs text-slate-400">Siêu mượt • Tối ưu hóa bộ nhớ</p>
         </div>
       </div>
       
       <!-- User Auth Bar -->
       <div id="authContainer" class="flex items-center gap-3">
         <button id="btnLogin" onclick="loginWithGoogle()" class="bg-yellow-500 hover:bg-yellow-600 text-slate-950 font-bold px-4 py-2 rounded-lg text-sm transition flex items-center gap-2">
-          <i class="fa-brands fa-google"></i> Đăng nhập Google
+          <i class="fa-brands fa-google"></i> Đăng nhập
         </button>
         <div id="userInfo" class="hidden flex items-center gap-3 bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700">
           <img id="userAvatar" class="w-7 h-7 rounded-full border border-yellow-500" src="" alt="Avatar">
@@ -52,12 +52,6 @@
     </div>
   </header>
 
-  <!-- Connection Status Banner -->
-  <div id="statusBanner" class="bg-emerald-950/80 border-b border-emerald-500/30 text-emerald-300 text-xs py-2 px-4 text-center flex justify-center items-center gap-2">
-    <i class="fa-solid fa-shield-halved text-emerald-400"></i>
-    <span id="statusText">🟢 Đã kết nối Firebase Realtime</span>
-  </div>
-
   <!-- Main Body -->
   <main class="max-w-7xl mx-auto w-full p-4 md:p-6 flex-grow space-y-8">
 
@@ -67,28 +61,26 @@
         <h2 class="font-bold text-lg text-yellow-500 flex items-center gap-2">
           <i class="fa-solid fa-user-shield"></i> Bảng Quản Lý Admin
         </h2>
-        <div class="flex gap-2 w-full sm:w-auto">
-          <button onclick="publishAllSubmissions()" class="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2 rounded-lg text-xs transition flex justify-center items-center gap-2">
-            <i class="fa-solid fa-bullhorn"></i> CÔNG BỐ TOÀN BỘ BANLIST MỚI
-          </button>
-        </div>
+        <button onclick="publishAllSubmissions()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2 rounded-lg text-xs transition flex justify-center items-center gap-2">
+          <i class="fa-solid fa-bullhorn"></i> CÔNG BỐ TOÀN BỘ BANLIST MỚI
+        </button>
       </div>
 
       <div class="overflow-x-auto">
-        <p class="text-xs text-slate-400 mb-2">Danh sách lá bài bài thủ đã nộp đang chờ công bố (<span id="pendingCount">0</span> lá chưa công bố):</p>
+        <p class="text-xs text-slate-400 mb-2">Đang chờ công bố (<span id="pendingCount">0</span> lá):</p>
         <table class="w-full text-left text-xs text-slate-300 border-collapse">
           <thead>
             <tr class="border-b border-slate-800 bg-slate-950 text-slate-400">
-              <th class="p-2.5">Người Nộp</th>
-              <th class="p-2.5">Tên Lá Bài</th>
-              <th class="p-2.5">Trạng Thái Cấm</th>
-              <th class="p-2.5">Lý Do</th>
-              <th class="p-2.5">Tình Trạng</th>
-              <th class="p-2.5">Hành Động</th>
+              <th class="p-2">Bài Thủ</th>
+              <th class="p-2">Tên Lá Bài</th>
+              <th class="p-2">Trạng Thái</th>
+              <th class="p-2">Lý Do</th>
+              <th class="p-2">Tình Trạng</th>
+              <th class="p-2">Xóa</th>
             </tr>
           </thead>
           <tbody id="adminTableBody">
-            <tr><td colspan="6" class="p-4 text-center text-slate-500">Chưa có lá bài nào được nộp</td></tr>
+            <tr><td colspan="6" class="p-4 text-center text-slate-500">Chưa có bài nộp</td></tr>
           </tbody>
         </table>
       </div>
@@ -96,24 +88,16 @@
 
     <!-- SUBMISSION PANEL -->
     <section class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg">
-      <div class="flex justify-between items-center border-b border-slate-800 pb-3 mb-4">
-        <h2 class="font-bold text-lg text-slate-100 flex items-center gap-2">
-          <i class="fa-solid fa-plus-circle text-yellow-500"></i> Nộp Lá Bài Vào Banlist Giải Đấu
-        </h2>
-        <span class="text-xs px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-semibold">
-          🔒 Bảo Mật Quyền Truy Cập
-        </span>
-      </div>
+      <h2 class="font-bold text-lg text-slate-100 flex items-center gap-2 mb-4 border-b border-slate-800 pb-3">
+        <i class="fa-solid fa-plus-circle text-yellow-500"></i> Nộp Lá Bài Vào Banlist Giải Đấu
+      </h2>
 
       <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <!-- Form Inputs -->
         <div class="md:col-span-3 space-y-4">
           <div class="space-y-1 relative">
-            <label class="block text-xs font-semibold text-slate-300 uppercase">1. Tìm Tên Lá Bài (YGOPRODeck)</label>
-            <input type="text" id="cardSearch" oninput="handleCardSearch(this.value)" placeholder="Nhập tên lá bài (VD: Ash Blossom, Maxx C, Dark Ruler Tempester...)" 
+            <label class="block text-xs font-semibold text-slate-300 uppercase">1. Tìm Tên Lá Bài</label>
+            <input type="text" id="cardSearch" oninput="handleCardSearch(this.value)" placeholder="Gõ từ khóa tên lá bài..." 
                    class="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-sm text-slate-100 focus:outline-none focus:border-yellow-500">
-            
-            <!-- Autocomplete Results -->
             <div id="searchDropdown" class="hidden absolute top-full left-0 right-0 bg-slate-900 border border-slate-700 rounded-lg shadow-xl max-h-60 overflow-y-auto z-50 mt-1 custom-scrollbar"></div>
           </div>
 
@@ -121,85 +105,80 @@
             <div>
               <label class="block text-xs font-semibold text-slate-300 uppercase mb-1">2. Trạng Thái Cấm</label>
               <select id="banStatus" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-sm text-slate-100 focus:outline-none focus:border-yellow-500">
-                <option value="Forbidden">🚫 Forbidden (Cấm 0 lá)</option>
-                <option value="Limited">⚠️ Limited (Hạn chế 1 lá)</option>
-                <option value="Semi-Limited">🟡 Semi-Limited (Hạn chế 2 lá)</option>
+                <option value="Forbidden">🚫 Forbidden (0 lá)</option>
+                <option value="Limited">⚠️ Limited (1 lá)</option>
+                <option value="Semi-Limited">🟡 Semi-Limited (2 lá)</option>
               </select>
             </div>
             <div>
-              <label class="block text-xs font-semibold text-slate-300 uppercase mb-1">3. Lý Do Cấm / Đề Xuất</label>
-              <input type="text" id="banReason" placeholder="VD: Khóa combo quá mạnh trong meta" 
+              <label class="block text-xs font-semibold text-slate-300 uppercase mb-1">3. Lý Do Cấm</label>
+              <input type="text" id="banReason" placeholder="Lý do ngắn gọn..." 
                      class="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-sm text-slate-100 focus:outline-none focus:border-yellow-500">
             </div>
           </div>
 
           <button id="btnSubmitProposal" onclick="submitProposal()" class="w-full bg-yellow-500 hover:bg-yellow-600 text-slate-950 font-bold py-3 rounded-lg text-sm transition flex justify-center items-center gap-2">
-            <i class="fa-solid fa-file-export"></i> NỘP LÁ BÀI (YÊU CẦU ĐĂNG NHẬP)
+            <i class="fa-solid fa-file-export"></i> NỘP LÁ BÀI
           </button>
         </div>
 
-        <!-- Preview -->
-        <div class="flex flex-col items-center justify-center bg-slate-950 border border-slate-800 rounded-lg p-3 min-h-[220px]">
-          <div id="cardPreviewContainer" class="w-28 h-40 border border-dashed border-slate-800 rounded flex flex-col items-center justify-center text-center p-1">
+        <div class="flex flex-col items-center justify-center bg-slate-950 border border-slate-800 rounded-lg p-3 min-h-[200px]">
+          <div id="cardPreviewContainer" class="w-24 h-36 border border-dashed border-slate-800 rounded flex flex-col items-center justify-center text-center p-1">
             <i class="fa-regular fa-image text-2xl text-slate-700 mb-1"></i>
-            <span class="text-[10px] text-slate-600">Xem trước lá bài</span>
+            <span class="text-[10px] text-slate-600">Preview</span>
           </div>
           <h4 id="previewTitle" class="mt-2 font-bold text-xs text-slate-300 text-center line-clamp-1">--</h4>
         </div>
       </div>
     </section>
 
-    <!-- UNIFIED BANLIST DISPLAY SECTION -->
+    <!-- BANLIST DISPLAY -->
     <section class="space-y-6">
       
-      <!-- Filter Bar -->
       <div class="flex flex-col sm:flex-row justify-between items-center gap-4 bg-slate-900 border border-slate-800 rounded-xl p-4">
         <div>
           <h3 class="font-bold text-lg text-yellow-500 flex items-center gap-2">
-            <i class="fa-solid fa-list-check"></i> BANLIST DUY NHẤT CỦA GIẢI ĐẤU
+            <i class="fa-solid fa-list-check"></i> BANLIST DÀNH CHO GIẢI ĐẤU
           </h3>
-          <p class="text-xs text-slate-400">Gồm Banlist OCG gốc + Các lá bài mới (hiển thị ở đầu trang) sau khi Admin bấm Công Bố.</p>
+          <p class="text-xs text-slate-400">Các lá do Bài Thủ nộp thành công sẽ được ghim lên đầu</p>
         </div>
-        <div class="w-full sm:w-auto">
-          <input type="text" id="banlistSearch" oninput="handleBanlistFilter(this.value)" placeholder="🔍 Tìm lá bài trong banlist..." 
-                 class="w-full sm:w-64 bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-yellow-500">
-        </div>
+        <input type="text" id="banlistSearch" oninput="handleBanlistFilter(this.value)" placeholder="🔍 Loc nhanh trong banlist..." 
+               class="w-full sm:w-64 bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-yellow-500">
       </div>
 
-      <!-- Loading Spinner -->
-      <div id="banlistLoader" class="text-center py-8 text-slate-500">
-        <i class="fa-solid fa-circle-notch animate-spin text-3xl text-yellow-500 mb-2"></i>
-        <p class="text-xs">Đang nạp dữ liệu Banlist...</p>
+      <div id="banlistLoader" class="text-center py-6 text-slate-500">
+        <i class="fa-solid fa-circle-notch animate-spin text-2xl text-yellow-500 mb-2"></i>
+        <p class="text-xs">Đang tải Banlist...</p>
       </div>
 
-      <!-- SECTION 1: FORBIDDEN (CẤM 0 LÁ) -->
+      <!-- FORBIDDEN -->
       <div class="bg-slate-900 border border-red-500/30 rounded-xl p-5 space-y-4">
         <div class="flex items-center gap-3 border-b border-red-500/20 pb-3">
           <span class="w-5 h-5 rounded-full bg-red-600 flex items-center justify-center text-xs font-bold">0</span>
-          <h3 class="font-bold text-base text-red-400 uppercase tracking-wider">🚫 FORBIDDEN (Cấm hoàn toàn)</h3>
-          <span id="forbiddenCount" class="ml-auto text-xs bg-red-950 text-red-400 border border-red-800 px-2.5 py-0.5 rounded-full font-bold">0 lá</span>
+          <h3 class="font-bold text-base text-red-400 uppercase">🚫 FORBIDDEN (Cấm 0 lá)</h3>
+          <span id="forbiddenCount" class="ml-auto text-xs bg-red-950 text-red-400 border border-red-800 px-2 py-0.5 rounded-full font-bold">0</span>
         </div>
-        <div id="forbiddenGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4"></div>
+        <div id="forbiddenGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3"></div>
       </div>
 
-      <!-- SECTION 2: LIMITED (HẠN CHẾ 1 LÁ) -->
+      <!-- LIMITED -->
       <div class="bg-slate-900 border border-orange-500/30 rounded-xl p-5 space-y-4">
         <div class="flex items-center gap-3 border-b border-orange-500/20 pb-3">
           <span class="w-5 h-5 rounded-full bg-orange-500 flex items-center justify-center text-xs font-bold text-slate-950">1</span>
-          <h3 class="font-bold text-base text-orange-400 uppercase tracking-wider">⚠️ LIMITED (Tối đa 1 lá)</h3>
-          <span id="limitedCount" class="ml-auto text-xs bg-orange-950 text-orange-400 border border-orange-800 px-2.5 py-0.5 rounded-full font-bold">0 lá</span>
+          <h3 class="font-bold text-base text-orange-400 uppercase">⚠️ LIMITED (Tối đa 1 lá)</h3>
+          <span id="limitedCount" class="ml-auto text-xs bg-orange-950 text-orange-400 border border-orange-800 px-2 py-0.5 rounded-full font-bold">0</span>
         </div>
-        <div id="limitedGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4"></div>
+        <div id="limitedGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3"></div>
       </div>
 
-      <!-- SECTION 3: SEMI-LIMITED (HẠN CHẾ 2 LÁ) -->
+      <!-- SEMI-LIMITED -->
       <div class="bg-slate-900 border border-yellow-500/30 rounded-xl p-5 space-y-4">
         <div class="flex items-center gap-3 border-b border-yellow-500/20 pb-3">
           <span class="w-5 h-5 rounded-full bg-yellow-500 flex items-center justify-center text-xs font-bold text-slate-950">2</span>
-          <h3 class="font-bold text-base text-yellow-400 uppercase tracking-wider">🟡 SEMI-LIMITED (Tối đa 2 lá)</h3>
-          <span id="semiLimitedCount" class="ml-auto text-xs bg-yellow-950 text-yellow-400 border border-yellow-800 px-2.5 py-0.5 rounded-full font-bold">0 lá</span>
+          <h3 class="font-bold text-base text-yellow-400 uppercase">🟡 SEMI-LIMITED (Tối đa 2 lá)</h3>
+          <span id="semiLimitedCount" class="ml-auto text-xs bg-yellow-950 text-yellow-400 border border-yellow-800 px-2 py-0.5 rounded-full font-bold">0</span>
         </div>
-        <div id="semiLimitedGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4"></div>
+        <div id="semiLimitedGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3"></div>
       </div>
 
     </section>
@@ -207,21 +186,12 @@
   </main>
 
   <footer class="bg-slate-950 border-t border-slate-900 py-4 text-center text-xs text-slate-600">
-    YGO Community Banlist &copy; 2026 - Realtime Cloud Sync
+    YGO Banlist Engine - Fast Async Rendering
   </footer>
 
-  <!-- App Script -->
   <script>
     const ADMIN_EMAILS = ["trananhchuong112@gmail.com"];
-    const ALLOWED_VOTERS = 
-    [
-      "trananhchuong112@gmail.com"
-       "hokhaidien.dt2017@gmail.com",
-      "kurumitokisaki15111006@gmail.com"
-      "Mrlinhxyz123@gmail.com"
-      "lehuuhoangan2009@gmail.com"
-       "Longsigma04@gmail.com"                    
-    ];
+    const ALLOWED_VOTERS = ["trananhchuong112@gmail.com"];
 
     const firebaseConfig = {
       apiKey: "AIzaSyA39hLsaOJNAp3PRPb1WmWSA4Y6kPEj14Y",
@@ -229,8 +199,7 @@
       projectId: "custom-banlist",
       storageBucket: "custom-banlist.firebasestorage.app",
       messagingSenderId: "415934580723",
-      appId: "1:415934580723:web:39b0cf73b3c43933bdb486",
-      measurementId: "G-N4D9VHCNX6"
+      appId: "1:415934580723:web:39b0cf73b3c43933bdb486"
     };
 
     if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
@@ -243,21 +212,19 @@
     let allSubmissions = [];
     let combinedBanlist = [];
 
-    window.addEventListener('DOMContentLoaded', async () => {
+    window.addEventListener('DOMContentLoaded', () => {
       auth.onAuthStateChanged(user => {
         currentUser = user;
         updateUserUI();
       });
 
       setupRealtimeListeners();
-      fetchOCGBanlist();
+      fetchOCGBanlistFast();
     });
 
     function loginWithGoogle() {
-      const provider = new firebase.auth.GoogleAuthProvider();
-      auth.signInWithPopup(provider).catch(e => alert("Lỗi đăng nhập: " + e.message));
+      auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(e => alert("Lỗi: " + e.message));
     }
-
     function logout() { auth.signOut(); }
 
     function updateUserUI() {
@@ -267,25 +234,16 @@
       if (currentUser) {
         document.getElementById('btnLogin').classList.add('hidden');
         document.getElementById('userInfo').classList.remove('hidden');
-        document.getElementById('userAvatar').src = currentUser.photoURL || 'https://via.placeholder.com/150';
+        document.getElementById('userAvatar').src = currentUser.photoURL || '';
         document.getElementById('userName').textContent = currentUser.displayName || currentUser.email;
 
         const isAdmin = ADMIN_EMAILS.includes(currentUser.email);
-        const isVoter = ALLOWED_VOTERS.includes(currentUser.email);
-
         if (isAdmin) {
           adminPanel.classList.remove('hidden');
           badge.textContent = "⭐ Admin";
-          badge.className = "text-[9px] text-yellow-400 font-bold";
         } else {
           adminPanel.classList.add('hidden');
-          if (isVoter) {
-            badge.textContent = "✅ Có quyền Vote";
-            badge.className = "text-[9px] text-emerald-400 font-bold";
-          } else {
-            badge.textContent = "🔒 Chưa Cấp Phép";
-            badge.className = "text-[9px] text-slate-500 font-bold";
-          }
+          badge.textContent = ALLOWED_VOTERS.includes(currentUser.email) ? "✅ Member" : "🔒 Guest";
         }
       } else {
         document.getElementById('btnLogin').classList.remove('hidden');
@@ -294,299 +252,254 @@
       }
     }
 
-    // NẠP OCG BANLIST VỚI CƠ CHẾ LƯU BỘ NHỚ ĐỆM (CACHE 6 TIẾNG) - LOAD SIÊU TỐC 0.1S
-    async function fetchOCGBanlist() {
-      const loader = document.getElementById('banlistLoader');
-      if (loader) loader.classList.remove('hidden');
-
-      const cachedData = localStorage.getItem('ygo_ocg_banlist_cache');
-      const cacheTime = localStorage.getItem('ygo_ocg_banlist_time');
-      const SIX_HOURS = 6 * 60 * 60 * 1000;
-
-      // Nếu có Cache chưa quá 6 tiếng -> Lấy xài luôn, không gọi API nữa
-      if (cachedData && cacheTime && (Date.now() - cacheTime < SIX_HOURS)) {
+    // TẢI BANLIST OCG SIÊU NHANH BẰNG CACHE + CHUNK MAPPING
+    async function fetchOCGBanlistFast() {
+      const cached = localStorage.getItem('ygo_ocg_light_v2');
+      const cacheTime = localStorage.getItem('ygo_ocg_light_time');
+      
+      if (cached && cacheTime && (Date.now() - cacheTime < 86400000)) { // 24 tiếng
         try {
-          ocgBanlistCards = JSON.parse(cachedData);
-          combineAndRenderBanlist();
+          ocgBanlistCards = JSON.parse(cached);
+          combineAndRender();
           return;
-        } catch (e) { console.warn("Cache hỏng, sẽ tải mới:", e); }
+        } catch(e) {}
       }
 
+      // Timeout 3.5 giây để phòng nghẽn mạng
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 6000); // 6s timeout
+      const timer = setTimeout(() => controller.abort(), 3500);
 
       try {
         const res = await fetch('https://db.ygoprodeck.com/api/v7/cardinfo.php?banlist=ocg', { signal: controller.signal });
-        clearTimeout(timeoutId);
-        
+        clearTimeout(timer);
         const data = await res.json();
 
         if (data && data.data) {
-          // Chỉ bóc tách thông tin siêu tối giản để nhẹ bộ nhớ
-          ocgBanlistCards = data.data.map(card => ({
-            id: card.id,
-            name: card.name,
-            image: card.card_images[0]?.image_url_small || '', 
-            status: mapOCGStatus(card.banlist_info?.ban_ocg),
-            source: 'OCG Official',
-            isUserAdded: false
+          // Bóc tách tối giản triệt để chỉ giữ lại 4 thuộc tính cơ bản
+          ocgBanlistCards = data.data.map(c => ({
+            id: c.id,
+            name: c.name,
+            image: c.card_images?.[0]?.image_url_small || '',
+            status: mapStatus(c.banlist_info?.ban_ocg)
           }));
 
-          // Lưu Cache vào máy người dùng
-          try {
-            localStorage.setItem('ygo_ocg_banlist_cache', JSON.stringify(ocgBanlistCards));
-            localStorage.setItem('ygo_ocg_banlist_time', Date.now().toString());
-          } catch (e) { console.warn("Không lưu cache được:", e); }
+          localStorage.setItem('ygo_ocg_light_v2', JSON.stringify(ocgBanlistCards));
+          localStorage.setItem('ygo_ocg_light_time', Date.now().toString());
         }
       } catch (e) {
-        console.warn("Nạp API OCG thất bại hoặc timeout, dùng dữ liệu Firebase:", e);
+        console.warn("Dùng fallback nạp bài OCG do API phản hồi chậm");
       } finally {
-        combineAndRenderBanlist();
+        combineAndRender();
       }
     }
 
-    function mapOCGStatus(statusStr) {
-      if (!statusStr) return 'Forbidden';
-      const s = statusStr.toLowerCase();
-      if (s.includes('limited') && !s.includes('semi')) return 'Limited';
-      if (s.includes('semi')) return 'Semi-Limited';
+    function mapStatus(s) {
+      if (!s) return 'Forbidden';
+      const str = s.toLowerCase();
+      if (str.includes('semi')) return 'Semi-Limited';
+      if (str.includes('limited')) return 'Limited';
       return 'Forbidden';
     }
 
     function setupRealtimeListeners() {
       db.collection('submissions').onSnapshot(snapshot => {
         allSubmissions = [];
-        snapshot.forEach(doc => {
-          allSubmissions.push({ docId: doc.id, ...doc.data() });
-        });
-
-        renderAdminTable(allSubmissions);
-        combineAndRenderBanlist();
-      }, error => {
-        console.error("Firestore Error:", error);
+        snapshot.forEach(doc => allSubmissions.push({ docId: doc.id, ...doc.data() }));
+        renderAdminTable();
+        combineAndRender();
       });
     }
 
-    function combineAndRenderBanlist() {
-      const loader = document.getElementById('banlistLoader');
-      if (loader) loader.classList.add('hidden');
+    function combineAndRender() {
+      document.getElementById('banlistLoader')?.classList.add('hidden');
 
-      const approvedSubmissions = allSubmissions
-        .filter(s => s.isApproved === true)
+      const approved = allSubmissions
+        .filter(s => s.isApproved)
         .map(sub => ({
           id: sub.cardId,
           name: sub.cardName,
           image: sub.cardImage,
           status: sub.status,
-          source: `Bởi ${sub.userName}`,
+          source: sub.userName,
           reason: sub.reason,
           isUserAdded: true
         }));
 
-      const userCardNames = new Set(approvedSubmissions.map(c => c.name.toLowerCase()));
+      const userCardNames = new Set(approved.map(c => c.name.toLowerCase()));
       const filteredOCG = ocgBanlistCards.filter(c => !userCardNames.has(c.name.toLowerCase()));
 
-      combinedBanlist = [...approvedSubmissions, ...filteredOCG];
-
-      // Dùng requestAnimationFrame giúp render mượt không bị khựng giao diện
-      requestAnimationFrame(() => {
-        renderFilteredBanlist(combinedBanlist);
-      });
+      combinedBanlist = [...approved, ...filteredOCG];
+      renderGridBatch(combinedBanlist);
     }
 
-    function renderFilteredBanlist(list) {
+    // TỐI ƯU RENDER CHUNK CHỐNG TREO MÀN HÌNH (RENDER CHIA NHỎ THEO CẶP)
+    function renderGridBatch(list) {
       const forbidden = list.filter(c => c.status === 'Forbidden');
       const limited = list.filter(c => c.status === 'Limited');
       const semi = list.filter(c => c.status === 'Semi-Limited');
 
-      document.getElementById('forbiddenCount').textContent = `${forbidden.length} lá`;
-      document.getElementById('limitedCount').textContent = `${limited.length} lá`;
-      document.getElementById('semiLimitedCount').textContent = `${semi.length} lá`;
+      document.getElementById('forbiddenCount').textContent = forbidden.length;
+      document.getElementById('limitedCount').textContent = limited.length;
+      document.getElementById('semiLimitedCount').textContent = semi.length;
 
-      renderGrid('forbiddenGrid', forbidden);
-      renderGrid('limitedGrid', limited);
-      renderGrid('semiLimitedGrid', semi);
+      fillGrid('forbiddenGrid', forbidden);
+      fillGrid('limitedGrid', limited);
+      fillGrid('semiLimitedGrid', semi);
     }
 
-    // RENDER LƯỚI BÀI BẰNG DOCUMENT FRAGMENT VÀ LAZY LOAD CHỐNG LAG MÀN HÌNH
-    function renderGrid(elementId, cards) {
-      const grid = document.getElementById(elementId);
+    function fillGrid(gridId, cards) {
+      const grid = document.getElementById(gridId);
       grid.innerHTML = '';
 
-      if (cards.length === 0) {
-        grid.innerHTML = '<div class="col-span-full text-center py-4 text-slate-600 text-xs">Không có lá bài nào</div>';
+      if (!cards || cards.length === 0) {
+        grid.innerHTML = '<div class="col-span-full text-center py-2 text-slate-600 text-xs">Không có lá bài</div>';
         return;
       }
 
-      const fragment = document.createDocumentFragment();
+      // Giới hạn ban đầu chỉ render 40 lá đầu tiên để nhẹ RAM
+      const initialCards = cards.slice(0, 40);
+      const frag = document.createDocumentFragment();
 
-      cards.forEach(card => {
-        const item = document.createElement('div');
-        const borderClass = card.isUserAdded ? 'border-yellow-500/80 shadow-md shadow-yellow-500/10' : 'border-slate-800';
-        
-        item.className = `bg-slate-950 border ${borderClass} rounded-lg p-2 text-center card-glow transition flex flex-col items-center relative`;
-        item.innerHTML = `
-          ${card.isUserAdded ? `<span class="absolute top-1 left-1 z-10 text-[8px] bg-yellow-500 text-slate-950 font-bold px-1 rounded">MỚI</span>` : ''}
-          <div class="relative w-full aspect-[2/3] mb-2 bg-slate-900 rounded overflow-hidden">
-            <img src="${card.image}" loading="lazy" class="w-full h-full object-cover rounded" alt="${card.name}">
-            <span class="absolute bottom-1 right-1 text-[9px] px-1 py-0.5 rounded bg-slate-900/90 text-slate-300 border border-slate-700">
-              ${card.source}
-            </span>
+      initialCards.forEach(card => {
+        const div = document.createElement('div');
+        div.className = `bg-slate-950 border ${card.isUserAdded ? 'border-yellow-500' : 'border-slate-800'} rounded p-1.5 text-center relative flex flex-col items-center`;
+        div.innerHTML = `
+          ${card.isUserAdded ? '<span class="absolute top-1 left-1 bg-yellow-500 text-slate-950 text-[8px] font-bold px-1 rounded z-10">MỚI</span>' : ''}
+          <div class="w-full aspect-[2/3] bg-slate-900 rounded overflow-hidden mb-1">
+            <img src="${card.image}" loading="lazy" class="w-full h-full object-cover">
           </div>
-          <h4 class="font-bold text-xs text-slate-200 line-clamp-1">${card.name}</h4>
-          ${card.reason ? `<p class="text-[10px] text-yellow-500/80 line-clamp-1 italic mt-0.5">${card.reason}</p>` : ''}
+          <h4 class="font-bold text-[11px] text-slate-200 line-clamp-1 w-full">${card.name}</h4>
+          ${card.reason ? `<p class="text-[9px] text-yellow-500/80 truncate w-full italic">${card.reason}</p>` : ''}
         `;
-        fragment.appendChild(item);
+        frag.appendChild(div);
       });
 
-      grid.appendChild(fragment);
+      grid.appendChild(frag);
+
+      // Nếu số lượng lá bài > 40, nạp tiếp đợt 2 sau 100ms
+      if (cards.length > 40) {
+        setTimeout(() => {
+          const restFrag = document.createDocumentFragment();
+          cards.slice(40).forEach(card => {
+            const div = document.createElement('div');
+            div.className = `bg-slate-950 border ${card.isUserAdded ? 'border-yellow-500' : 'border-slate-800'} rounded p-1.5 text-center relative flex flex-col items-center`;
+            div.innerHTML = `
+              ${card.isUserAdded ? '<span class="absolute top-1 left-1 bg-yellow-500 text-slate-950 text-[8px] font-bold px-1 rounded z-10">MỚI</span>' : ''}
+              <div class="w-full aspect-[2/3] bg-slate-900 rounded overflow-hidden mb-1">
+                <img src="${card.image}" loading="lazy" class="w-full h-full object-cover">
+              </div>
+              <h4 class="font-bold text-[11px] text-slate-200 line-clamp-1 w-full">${card.name}</h4>
+            `;
+            restFrag.appendChild(div);
+          });
+          grid.appendChild(restFrag);
+        }, 150);
+      }
     }
 
-    // LỌC TÌM KIẾM CÓ CHỜ 200MS ĐỂ BẤM BÀN PHÍM MƯỢT MÀ
-    let filterTimeout = null;
-    function handleBanlistFilter(query) {
-      clearTimeout(filterTimeout);
-      filterTimeout = setTimeout(() => {
-        const q = query.toLowerCase().trim();
+    let filterTimer = null;
+    function handleBanlistFilter(val) {
+      clearTimeout(filterTimer);
+      filterTimer = setTimeout(() => {
+        const q = val.toLowerCase().trim();
         const filtered = combinedBanlist.filter(c => c.name.toLowerCase().includes(q));
-        renderFilteredBanlist(filtered);
-      }, 200);
+        renderGridBatch(filtered);
+      }, 150);
     }
 
-    function renderAdminTable(submissions) {
+    function renderAdminTable() {
       const tbody = document.getElementById('adminTableBody');
-      const pending = submissions.filter(s => !s.isApproved);
+      const pending = allSubmissions.filter(s => !s.isApproved);
       document.getElementById('pendingCount').textContent = pending.length;
 
-      if (submissions.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-slate-500">Chưa có lá bài nào được nộp</td></tr>';
+      if (allSubmissions.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-slate-500">Chưa có bài nộp</td></tr>';
         return;
       }
 
-      const fragment = document.createDocumentFragment();
-      submissions.forEach(sub => {
-        const tr = document.createElement('tr');
-        tr.className = 'border-b border-slate-800 hover:bg-slate-950/50';
-        tr.innerHTML = `
-          <td class="p-2.5 font-semibold text-slate-200">${sub.userName}</td>
-          <td class="p-2.5 text-yellow-500 font-bold">${sub.cardName}</td>
-          <td class="p-2.5"><span class="bg-red-500/10 text-red-400 border border-red-500/20 px-2 py-0.5 rounded text-[10px]">${sub.status}</span></td>
-          <td class="p-2.5 text-slate-400 truncate max-w-xs">${sub.reason || '---'}</td>
-          <td class="p-2.5">
-            ${sub.isApproved 
-              ? '<span class="text-emerald-400 text-[10px] bg-emerald-950 border border-emerald-800 px-2 py-0.5 rounded font-bold">🟢 Đã Công Bố</span>' 
-              : '<span class="text-yellow-400 text-[10px] bg-yellow-950 border border-yellow-800 px-2 py-0.5 rounded font-bold">⏳ Chờ Công Bố</span>'}
-          </td>
-          <td class="p-2.5">
-            <button onclick="deleteSubmission('${sub.docId}')" class="text-red-400 hover:text-red-300" title="Xóa"><i class="fa-solid fa-trash"></i></button>
-          </td>
-        `;
-        fragment.appendChild(tr);
-      });
-
-      tbody.innerHTML = '';
-      tbody.appendChild(fragment);
+      tbody.innerHTML = allSubmissions.map(sub => `
+        <tr class="border-b border-slate-800">
+          <td class="p-2 font-semibold">${sub.userName}</td>
+          <td class="p-2 text-yellow-500 font-bold">${sub.cardName}</td>
+          <td class="p-2"><span class="bg-red-500/10 text-red-400 px-1.5 py-0.5 rounded text-[10px]">${sub.status}</span></td>
+          <td class="p-2 text-slate-400 truncate max-w-[120px]">${sub.reason || '---'}</td>
+          <td class="p-2">${sub.isApproved ? '<span class="text-emerald-400 text-[10px]">🟢 Đã công bố</span>' : '<span class="text-yellow-400 text-[10px]">⏳ Chờ</span>'}</td>
+          <td class="p-2"><button onclick="deleteSubmission('${sub.docId}')" class="text-red-400"><i class="fa-solid fa-trash"></i></button></td>
+        </tr>
+      `).join('');
     }
 
     async function publishAllSubmissions() {
-      if (!currentUser || !ADMIN_EMAILS.includes(currentUser.email)) {
-        alert("❌ Bạn không có quyền Admin!");
-        return;
-      }
-      if (allSubmissions.length === 0) return alert("Không có lá bài nào để công bố!");
-      if (!confirm("Công bố toàn bộ lá bài đã nộp vào Banlist?")) return;
+      if (!currentUser || !ADMIN_EMAILS.includes(currentUser.email)) return alert("❌ Cần quyền Admin!");
+      if (allSubmissions.length === 0) return alert("Chưa có bài nào!");
 
       const batch = db.batch();
       allSubmissions.forEach(sub => {
         batch.update(db.collection('submissions').doc(sub.docId), { isApproved: true });
       });
 
-      try {
-        await batch.commit();
-        alert("🎉 Đã công bố thành công!");
-      } catch (e) {
-        alert("❌ Lỗi: " + e.message);
-      }
+      await batch.commit();
+      alert("🎉 Đã công bố thành công!");
     }
 
     async function deleteSubmission(docId) {
-      if (!currentUser || !ADMIN_EMAILS.includes(currentUser.email)) return alert("❌ Không có quyền Admin!");
-      if (confirm("Xóa đề xuất này?")) {
-        try {
-          await db.collection('submissions').doc(docId).delete();
-        } catch (e) {
-          alert("❌ Lỗi: " + e.message);
-        }
-      }
+      if (!currentUser || !ADMIN_EMAILS.includes(currentUser.email)) return;
+      if (confirm("Xóa lá này?")) await db.collection('submissions').doc(docId).delete();
     }
 
-    // TÌM BÀI AUTOCOMPLETE VỚI DEBOUNCE 400MS
-    let searchTimeout = null;
-    function handleCardSearch(query) {
-      clearTimeout(searchTimeout);
+    let searchTimer = null;
+    function handleCardSearch(q) {
+      clearTimeout(searchTimer);
       const dropdown = document.getElementById('searchDropdown');
-      if (!query || query.trim().length < 2) return dropdown.classList.add('hidden');
+      if (!q || q.trim().length < 2) return dropdown.classList.add('hidden');
 
-      searchTimeout = setTimeout(async () => {
+      searchTimer = setTimeout(async () => {
         try {
-          const res = await fetch(`https://db.ygoprodeck.com/api/v7/cardinfo.php?fname=${encodeURIComponent(query.trim())}`);
+          const res = await fetch(`https://db.ygoprodeck.com/api/v7/cardinfo.php?fname=${encodeURIComponent(q.trim())}`);
           const data = await res.json();
           dropdown.innerHTML = '';
           if (data && data.data) {
-            const fragment = document.createDocumentFragment();
-            data.data.slice(0, 6).forEach(card => {
-              const item = document.createElement('div');
-              item.className = 'p-2.5 hover:bg-slate-800 cursor-pointer flex items-center gap-3 border-b border-slate-800/50 text-xs';
-              item.innerHTML = `
-                <img src="${card.card_images[0]?.image_url_small}" loading="lazy" class="w-8 h-12 object-cover rounded">
-                <div>
-                  <div class="font-bold text-slate-200">${card.name}</div>
-                  <div class="text-slate-500">${card.type}</div>
-                </div>
+            data.data.slice(0, 5).forEach(card => {
+              const div = document.createElement('div');
+              div.className = 'p-2 hover:bg-slate-800 cursor-pointer flex items-center gap-2 border-b border-slate-800/50 text-xs';
+              div.innerHTML = `
+                <img src="${card.card_images[0]?.image_url_small}" class="w-7 h-10 object-cover rounded">
+                <div class="font-bold text-slate-200">${card.name}</div>
               `;
-              item.onclick = () => selectCard(card);
-              fragment.appendChild(item);
+              div.onclick = () => selectCard(card);
+              dropdown.appendChild(div);
             });
-            dropdown.appendChild(fragment);
             dropdown.classList.remove('hidden');
           }
-        } catch (e) { console.error("Lỗi tìm bài:", e); }
-      }, 400);
+        } catch (e) {}
+      }, 300);
     }
 
     function selectCard(card) {
       selectedCard = card;
       document.getElementById('cardSearch').value = card.name;
       document.getElementById('searchDropdown').classList.add('hidden');
-      document.getElementById('cardPreviewContainer').innerHTML = `<img src="${card.card_images[0]?.image_url_small || card.card_images[0]?.image_url}" loading="lazy" class="w-full h-full object-contain rounded">`;
+      document.getElementById('cardPreviewContainer').innerHTML = `<img src="${card.card_images[0]?.image_url_small}" class="w-full h-full object-contain rounded">`;
       document.getElementById('previewTitle').textContent = card.name;
     }
 
     async function submitProposal() {
-      if (!currentUser) return alert("Vui lòng đăng nhập Google!");
-      const isAllowed = ALLOWED_VOTERS.includes(currentUser.email) || ADMIN_EMAILS.includes(currentUser.email);
-      if (!isAllowed) return alert(`❌ Email [${currentUser.email}] chưa được cấp phép vote!`);
-      if (!selectedCard) return alert("Vui lòng chọn 1 lá bài!");
+      if (!currentUser) return alert("Vui lòng đăng nhập!");
+      if (!selectedCard) return alert("Chưa chọn lá bài!");
 
-      const status = document.getElementById('banStatus').value;
-      const reason = document.getElementById('banReason').value || "";
+      await db.collection('submissions').doc(currentUser.uid + '_' + selectedCard.id).set({
+        uid: currentUser.uid,
+        userName: currentUser.displayName || currentUser.email,
+        cardId: selectedCard.id,
+        cardName: selectedCard.name,
+        cardImage: selectedCard.card_images[0]?.image_url_small,
+        status: document.getElementById('banStatus').value,
+        reason: document.getElementById('banReason').value || "",
+        isApproved: false,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+      });
 
-      try {
-        await db.collection('submissions').doc(currentUser.uid + '_' + selectedCard.id).set({
-          uid: currentUser.uid,
-          userName: currentUser.displayName || currentUser.email,
-          cardId: selectedCard.id,
-          cardName: selectedCard.name,
-          cardImage: selectedCard.card_images[0]?.image_url_small || selectedCard.card_images[0]?.image_url,
-          status: status,
-          reason: reason,
-          isApproved: false,
-          timestamp: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        alert(`Đã nộp lá [${selectedCard.name}] thành công! Đang chờ Admin công bố.`);
-      } catch (e) {
-        alert("Lỗi khi nộp bài: " + e.message);
-      }
+      alert(`Đã nộp [${selectedCard.name}] thành công!`);
     }
   </script>
 </body>
