@@ -214,14 +214,14 @@
   <script>
     const ADMIN_EMAILS = ["trananhchuong112@gmail.com"];
     const ALLOWED_VOTERS = 
-      ["trananhchuong112@gmail.com"
-        "trananhchuong112@gmail.com",
-      "hokhaidien.dt2017@gmail.com",
+    [
+      "trananhchuong112@gmail.com"
+       "hokhaidien.dt2017@gmail.com",
       "kurumitokisaki15111006@gmail.com"
       "Mrlinhxyz123@gmail.com"
       "lehuuhoangan2009@gmail.com"
        "Longsigma04@gmail.com"                    
-      ];
+    ];
 
     const firebaseConfig = {
       apiKey: "AIzaSyA39hLsaOJNAp3PRPb1WmWSA4Y6kPEj14Y",
@@ -294,29 +294,52 @@
       }
     }
 
-    // NẠP OCG BANLIST VỚI BỘ LỌC TỐI ƯU RAM & TIMEOUT CHỐNG ĐƠ WEB
+    // NẠP OCG BANLIST VỚI CƠ CHẾ LƯU BỘ NHỚ ĐỆM (CACHE 6 TIẾNG) - LOAD SIÊU TỐC 0.1S
     async function fetchOCGBanlist() {
+      const loader = document.getElementById('banlistLoader');
+      if (loader) loader.classList.remove('hidden');
+
+      const cachedData = localStorage.getItem('ygo_ocg_banlist_cache');
+      const cacheTime = localStorage.getItem('ygo_ocg_banlist_time');
+      const SIX_HOURS = 6 * 60 * 60 * 1000;
+
+      // Nếu có Cache chưa quá 6 tiếng -> Lấy xài luôn, không gọi API nữa
+      if (cachedData && cacheTime && (Date.now() - cacheTime < SIX_HOURS)) {
+        try {
+          ocgBanlistCards = JSON.parse(cachedData);
+          combineAndRenderBanlist();
+          return;
+        } catch (e) { console.warn("Cache hỏng, sẽ tải mới:", e); }
+      }
+
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000); // Max 5 giây
+      const timeoutId = setTimeout(() => controller.abort(), 6000); // 6s timeout
 
       try {
         const res = await fetch('https://db.ygoprodeck.com/api/v7/cardinfo.php?banlist=ocg', { signal: controller.signal });
         clearTimeout(timeoutId);
-        const data = await res.json();
         
+        const data = await res.json();
+
         if (data && data.data) {
-          // Bóc tách thuộc tính tối thiểu để tránh tràn bộ nhớ RAM
+          // Chỉ bóc tách thông tin siêu tối giản để nhẹ bộ nhớ
           ocgBanlistCards = data.data.map(card => ({
             id: card.id,
             name: card.name,
-            image: card.card_images[0]?.image_url_small || '',
+            image: card.card_images[0]?.image_url_small || '', 
             status: mapOCGStatus(card.banlist_info?.ban_ocg),
             source: 'OCG Official',
             isUserAdded: false
           }));
+
+          // Lưu Cache vào máy người dùng
+          try {
+            localStorage.setItem('ygo_ocg_banlist_cache', JSON.stringify(ocgBanlistCards));
+            localStorage.setItem('ygo_ocg_banlist_time', Date.now().toString());
+          } catch (e) { console.warn("Không lưu cache được:", e); }
         }
       } catch (e) {
-        console.warn("Không tải được OCG Banlist hoặc bị timeout:", e);
+        console.warn("Nạp API OCG thất bại hoặc timeout, dùng dữ liệu Firebase:", e);
       } finally {
         combineAndRenderBanlist();
       }
@@ -345,7 +368,8 @@
     }
 
     function combineAndRenderBanlist() {
-      document.getElementById('banlistLoader').classList.add('hidden');
+      const loader = document.getElementById('banlistLoader');
+      if (loader) loader.classList.add('hidden');
 
       const approvedSubmissions = allSubmissions
         .filter(s => s.isApproved === true)
@@ -359,11 +383,15 @@
           isUserAdded: true
         }));
 
-      const userCardNames = new Set(approvedSubmissions.map(c => c.name));
-      const filteredOCG = ocgBanlistCards.filter(c => !userCardNames.has(c.name));
+      const userCardNames = new Set(approvedSubmissions.map(c => c.name.toLowerCase()));
+      const filteredOCG = ocgBanlistCards.filter(c => !userCardNames.has(c.name.toLowerCase()));
 
       combinedBanlist = [...approvedSubmissions, ...filteredOCG];
-      renderFilteredBanlist(combinedBanlist);
+
+      // Dùng requestAnimationFrame giúp render mượt không bị khựng giao diện
+      requestAnimationFrame(() => {
+        renderFilteredBanlist(combinedBanlist);
+      });
     }
 
     function renderFilteredBanlist(list) {
@@ -380,7 +408,7 @@
       renderGrid('semiLimitedGrid', semi);
     }
 
-    // TỐI ƯU RENDER GRID BẰNG DOCUMENT FRAGMENT VÀ LAZY LOADING
+    // RENDER LƯỚI BÀI BẰNG DOCUMENT FRAGMENT VÀ LAZY LOAD CHỐNG LAG MÀN HÌNH
     function renderGrid(elementId, cards) {
       const grid = document.getElementById(elementId);
       grid.innerHTML = '';
@@ -414,7 +442,7 @@
       grid.appendChild(fragment);
     }
 
-    // DEBOUNCE FILTER DỄ TÌM KIẾM KHÔNG GIẬT MÀN HÌNH
+    // LỌC TÌM KIẾM CÓ CHỜ 200MS ĐỂ BẤM BÀN PHÍM MƯỢT MÀ
     let filterTimeout = null;
     function handleBanlistFilter(query) {
       clearTimeout(filterTimeout);
@@ -492,7 +520,7 @@
       }
     }
 
-    // TỐI ƯU HÀM TÌM KIẾM BÀI (DEBOUNCE 400MS CHỐNG NGHẼN MẠNG API)
+    // TÌM BÀI AUTOCOMPLETE VỚI DEBOUNCE 400MS
     let searchTimeout = null;
     function handleCardSearch(query) {
       clearTimeout(searchTimeout);
