@@ -269,7 +269,7 @@
     let allSubmissions = [];
     let combinedBanlist = [];
 
-    // Từ điển tra cứu Card ID -> Name để xử lý Alt Art tức thì
+    // Từ điển tra cứu Card ID (bao gồm cả Alt Art ID) -> Canonical Name
     const cardIdToNameCache = new Map();
 
     window.addEventListener('DOMContentLoaded', () => {
@@ -641,7 +641,7 @@
       }
     }
 
-    // --- XỬ LÝ YDKE DECK CHECKER (GIAI MÃ SONG SONG & NORMALIZE BẮT ALT ART TRIỆT ĐỂ) ---
+    // --- XỬ LÝ YDKE DECK CHECKER (CHUẨN HÓA ID BẰNG BATCH FETCH ĐỂ BẮT MỌI BẢN ALT ART) ---
 
     function parseYdkeBlock(base64Str) {
       if (!base64Str) return [];
@@ -663,24 +663,33 @@
       }
     }
 
-    // Lấy tên lá bài theo ID (Nếu là Alt Art ID sẽ tự fetch API để đưa về Tên Gốc)
-    async function resolveCardName(cardId) {
-      const idNum = Number(cardId);
-      if (cardIdToNameCache.has(idNum)) {
-        return cardIdToNameCache.get(idNum);
-      }
+    // Tra cứu danh sách ID chưa biết qua API hàng loạt (Batch Query)
+    async function resolveMissingCardIds(missingIds) {
+      if (!missingIds || missingIds.length === 0) return;
 
-      try {
-        const res = await fetch(`https://db.ygoprodeck.com/api/v7/cardinfo.php?id=${idNum}`);
-        const data = await res.json();
-        if (data && data.data && data.data[0]) {
-          const canonicalName = data.data[0].name;
-          cardIdToNameCache.set(idNum, canonicalName);
-          return canonicalName;
+      // Gom tối đa 20 ID mỗi lần gọi API để tránh URL quá dài
+      const chunkSize = 20;
+      for (let i = 0; i < missingIds.length; i += chunkSize) {
+        const chunk = missingIds.slice(i, i + chunkSize);
+        try {
+          const res = await fetch(`https://db.ygoprodeck.com/api/v7/cardinfo.php?id=${chunk.join(',')}`);
+          const data = await res.json();
+          if (data && data.data) {
+            data.data.forEach(card => {
+              // Lưu ID chính của lá bài
+              cardIdToNameCache.set(Number(card.id), card.name);
+              // Lưu toàn bộ ID Alternate Art liên quan
+              if (card.card_images) {
+                card.card_images.forEach(img => {
+                  if (img.id) cardIdToNameCache.set(Number(img.id), card.name);
+                });
+              }
+            });
+          }
+        } catch (e) {
+          console.warn("Lỗi fetch thông tin lá bài:", e);
         }
-      } catch (e) {}
-
-      return `Unknown Card (${idNum})`;
+      }
     }
 
     async function checkYdkeDeck() {
@@ -713,14 +722,18 @@
         return;
       }
 
-      // Xử lý song song bằng Promise.all đưa toàn bộ ID (kể cả Alt Art) về Tên Chuẩn
-      const uniqueIds = Array.from(new Set(allCardIds));
-      await Promise.all(uniqueIds.map(id => resolveCardName(id)));
+      // Lọc các ID chưa nằm trong Cache (các lá Alt Art tràn viền)
+      const missingIds = Array.from(new Set(allCardIds)).filter(id => !cardIdToNameCache.has(Number(id)));
+      
+      // Gọi API tra cứu để đưa Alt Art ID về Tên Bài Chuẩn
+      if (missingIds.length > 0) {
+        await resolveMissingCardIds(missingIds);
+      }
 
-      // Đếm số lượng tổng cộng theo Tên Chuẩn của lá bài
+      // Đếm số lượng theo Tên Bài Chuẩn
       const nameCounts = {};
       allCardIds.forEach(id => {
-        const canonicalName = cardIdToNameCache.get(Number(id)) || `Unknown Card (${id})`;
+        const canonicalName = cardIdToNameCache.get(Number(id)) || `Mã ID chưa xác định (${id})`;
         nameCounts[canonicalName] = (nameCounts[canonicalName] || 0) + 1;
       });
 
