@@ -269,6 +269,9 @@
     let allSubmissions = [];
     let combinedBanlist = [];
 
+    // Từ điển tra cứu Card ID -> Name để xử lý Alt Art tức thì
+    const cardIdToNameCache = new Map();
+
     window.addEventListener('DOMContentLoaded', () => {
       auth.onAuthStateChanged(user => {
         currentUser = user;
@@ -339,6 +342,7 @@
       if (cached && cacheTime && (Date.now() - cacheTime < 86400000)) {
         try {
           ocgBanlistCards = JSON.parse(cached);
+          ocgBanlistCards.forEach(c => cardIdToNameCache.set(Number(c.id), c.name));
           combineAndRender();
           return;
         } catch(e) {}
@@ -353,12 +357,15 @@
         const data = await res.json();
 
         if (data && data.data) {
-          ocgBanlistCards = data.data.map(c => ({
-            id: c.id,
-            name: c.name,
-            image: c.card_images?.[0]?.image_url_small || '',
-            status: mapStatus(c.banlist_info?.ban_ocg)
-          }));
+          ocgBanlistCards = data.data.map(c => {
+            cardIdToNameCache.set(Number(c.id), c.name);
+            return {
+              id: c.id,
+              name: c.name,
+              image: c.card_images?.[0]?.image_url_small || '',
+              status: mapStatus(c.banlist_info?.ban_ocg)
+            };
+          });
 
           localStorage.setItem('ygo_ocg_light_v2', JSON.stringify(ocgBanlistCards));
           localStorage.setItem('ygo_ocg_light_time', Date.now().toString());
@@ -392,15 +399,18 @@
 
       const approved = allSubmissions
         .filter(s => s.isApproved)
-        .map(sub => ({
-          id: sub.cardId,
-          name: sub.cardName,
-          image: sub.cardImage,
-          status: sub.status,
-          source: sub.userName,
-          reason: sub.reason,
-          isUserAdded: true
-        }));
+        .map(sub => {
+          cardIdToNameCache.set(Number(sub.cardId), sub.cardName);
+          return {
+            id: sub.cardId,
+            name: sub.cardName,
+            image: sub.cardImage,
+            status: sub.status,
+            source: sub.userName,
+            reason: sub.reason,
+            isUserAdded: true
+          };
+        });
 
       const userCardNames = new Set(approved.map(c => c.name.toLowerCase()));
       const filteredOCG = ocgBanlistCards.filter(c => !userCardNames.has(c.name.toLowerCase()));
@@ -631,7 +641,7 @@
       }
     }
 
-    // --- XỬ LÝ YDKE DECK CHECKER (HỖ TRỢ ALT ART CHUẨN XÁC) ---
+    // --- XỬ LÝ YDKE DECK CHECKER (GIAI MÃ SONG SONG & NORMALIZE BẮT ALT ART TRIỆT ĐỂ) ---
 
     function parseYdkeBlock(base64Str) {
       if (!base64Str) return [];
@@ -651,6 +661,26 @@
         console.error("Lỗi giải mã YDKE Block:", e);
         return [];
       }
+    }
+
+    // Lấy tên lá bài theo ID (Nếu là Alt Art ID sẽ tự fetch API để đưa về Tên Gốc)
+    async function resolveCardName(cardId) {
+      const idNum = Number(cardId);
+      if (cardIdToNameCache.has(idNum)) {
+        return cardIdToNameCache.get(idNum);
+      }
+
+      try {
+        const res = await fetch(`https://db.ygoprodeck.com/api/v7/cardinfo.php?id=${idNum}`);
+        const data = await res.json();
+        if (data && data.data && data.data[0]) {
+          const canonicalName = data.data[0].name;
+          cardIdToNameCache.set(idNum, canonicalName);
+          return canonicalName;
+        }
+      } catch (e) {}
+
+      return `Unknown Card (${idNum})`;
     }
 
     async function checkYdkeDeck() {
@@ -683,42 +713,22 @@
         return;
       }
 
-      const cardCounts = {};
+      // Xử lý song song bằng Promise.all đưa toàn bộ ID (kể cả Alt Art) về Tên Chuẩn
+      const uniqueIds = Array.from(new Set(allCardIds));
+      await Promise.all(uniqueIds.map(id => resolveCardName(id)));
+
+      // Đếm số lượng tổng cộng theo Tên Chuẩn của lá bài
+      const nameCounts = {};
       allCardIds.forEach(id => {
-        cardCounts[id] = (cardCounts[id] || 0) + 1;
+        const canonicalName = cardIdToNameCache.get(Number(id)) || `Unknown Card (${id})`;
+        nameCounts[canonicalName] = (nameCounts[canonicalName] || 0) + 1;
       });
 
-      const banlistIdMap = new Map();
+      // Bảng Banlist tra cứu theo Tên Chuẩn
       const banlistNameMap = new Map();
-
       combinedBanlist.forEach(card => {
-        if (card.id) banlistIdMap.set(Number(card.id), card);
         if (card.name) banlistNameMap.set(card.name.toLowerCase().trim(), card);
       });
-
-      const nameCounts = {};
-
-      for (const [idStr, count] of Object.entries(cardCounts)) {
-        const cardId = Number(idStr);
-        let banInfo = banlistIdMap.get(cardId);
-        let cardName = banInfo ? banInfo.name : null;
-
-        // Tra cứu API nếu ID thuộc bản Alt Art
-        if (!cardName) {
-          try {
-            const res = await fetch(`https://db.ygoprodeck.com/api/v7/cardinfo.php?id=${cardId}`);
-            const data = await res.json();
-            if (data && data.data && data.data[0]) {
-              cardName = data.data[0].name;
-            }
-          } catch (e) {
-            cardName = `ID: ${cardId}`;
-          }
-        }
-
-        if (!cardName) cardName = `ID: ${cardId}`;
-        nameCounts[cardName] = (nameCounts[cardName] || 0) + count;
-      }
 
       const violations = [];
 
