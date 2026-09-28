@@ -144,44 +144,28 @@
       </div>
     </section>
 
-    <!-- BANLIST DISPLAY -->
-    <div class="flex flex-col sm:flex-row justify-between items-center gap-4 bg-slate-900 border border-slate-800 rounded-xl p-4">
-  <div>
-    <h3 class="font-bold text-lg text-yellow-500 flex items-center gap-2">
-      <i class="fa-solid fa-list-check"></i> BANLIST DÀNH CHO GIẢI ĐẤU
-    </h3>
-    <p class="text-xs text-slate-400">Các lá do Bài Thủ nộp thành công sẽ được ghim lên đầu</p>
-  </div>
-  
-  <div class="flex items-center gap-2 w-full sm:w-auto">
-    <input type="text" id="banlistSearch" oninput="handleBanlistFilter(this.value)" placeholder="🔍 Lọc nhanh trong banlist..." 
-           class="w-full sm:w-64 bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-yellow-500">
     <!-- YDKE DECK CHECKER SECTION -->
-<section class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg space-y-4">
-  <h2 class="font-bold text-lg text-slate-100 flex items-center gap-2 border-b border-slate-800 pb-3">
-    <i class="fa-solid fa-box-archive text-yellow-500"></i> Kiểm Tra Bộ Bài (YDKE Deck Checker)
-  </h2>
+    <section class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg space-y-4">
+      <h2 class="font-bold text-lg text-slate-100 flex items-center gap-2 border-b border-slate-800 pb-3">
+        <i class="fa-solid fa-box-archive text-yellow-500"></i> Kiểm Tra Bộ Bài (YDKE Deck Checker)
+      </h2>
 
-  <div class="space-y-3">
-    <label class="block text-xs font-semibold text-slate-300 uppercase">Dán chuỗi mã YDKE vào đây:</label>
-    <div class="flex gap-2">
-      <input type="text" id="ydkeInput" placeholder="ydke://..." 
-             class="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-sm text-slate-100 focus:outline-none focus:border-yellow-500 font-mono">
-      <button onclick="checkYdkeDeck()" class="bg-yellow-500 hover:bg-yellow-600 text-slate-950 font-bold px-5 py-3 rounded-lg text-sm transition flex items-center gap-2 whitespace-nowrap">
-        <i class="fa-solid fa-magnifying-glass font-bold"></i> Kiểm Tra
-      </button>
-    </div>
-  </div>
+      <div class="space-y-3">
+        <label class="block text-xs font-semibold text-slate-300 uppercase">Dán chuỗi mã YDKE vào đây:</label>
+        <div class="flex gap-2">
+          <input type="text" id="ydkeInput" placeholder="ydke://..." 
+                 class="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-sm text-slate-100 focus:outline-none focus:border-yellow-500 font-mono">
+          <button onclick="checkYdkeDeck()" class="bg-yellow-500 hover:bg-yellow-600 text-slate-950 font-bold px-5 py-3 rounded-lg text-sm transition flex items-center gap-2 whitespace-nowrap">
+            <i class="fa-solid fa-magnifying-glass font-bold"></i> Kiểm Tra
+          </button>
+        </div>
+      </div>
 
-  <!-- Kết quả kiểm tra -->
-  <div id="deckCheckResult" class="hidden p-4 rounded-lg border text-xs space-y-2"></div>
-</section>
-    <!-- Nút tải Banlist về -->
-    <button onclick="downloadBanlist('json')" title="Tải file JSON" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-yellow-500 font-bold px-3 py-2 rounded-lg text-xs transition flex items-center gap-1 whitespace-nowrap">
-      <i class="fa-solid fa-download"></i> Tải về (JSON)
-    </button>
-  </div>
-</div>
+      <!-- Kết quả kiểm tra -->
+      <div id="deckCheckResult" class="hidden p-4 rounded-lg border text-xs space-y-2"></div>
+    </section>
+
+    <!-- BANLIST DISPLAY -->
     <section class="space-y-6">
       
       <div class="flex flex-col sm:flex-row justify-between items-center gap-4 bg-slate-900 border border-slate-800 rounded-xl p-4">
@@ -191,8 +175,16 @@
           </h3>
           <p class="text-xs text-slate-400">Các lá do Bài Thủ nộp thành công sẽ được ghim lên đầu</p>
         </div>
-        <input type="text" id="banlistSearch" oninput="handleBanlistFilter(this.value)" placeholder="🔍 Lọc nhanh trong banlist..." 
-               class="w-full sm:w-64 bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-yellow-500">
+        
+        <div class="flex items-center gap-2 w-full sm:w-auto">
+          <input type="text" id="banlistSearch" oninput="handleBanlistFilter(this.value)" placeholder="🔍 Lọc nhanh trong banlist..." 
+                 class="w-full sm:w-64 bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-yellow-500">
+          
+          <!-- Nút tải Banlist về -->
+          <button onclick="downloadBanlist('json')" title="Tải file JSON" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-yellow-500 font-bold px-3 py-2 rounded-lg text-xs transition flex items-center gap-1 whitespace-nowrap">
+            <i class="fa-solid fa-download"></i> Tải về (JSON)
+          </button>
+        </div>
       </div>
 
       <div id="banlistLoader" class="text-center py-6 text-slate-500">
@@ -599,173 +591,168 @@
         alert("❌ Lỗi khi gửi dữ liệu: " + error.message);
       }
     }
+
     // Hàm xuất và tải file Banlist về máy
-function downloadBanlist(type = 'json') {
-  if (!combinedBanlist || combinedBanlist.length === 0) {
-    return alert("⚠️ Dữ liệu Banlist chưa sẵn sàng hoặc đang trống!");
-  }
-
-  // Sắp xếp dữ liệu gọn gàng trước khi xuất
-  const exportData = combinedBanlist.map(card => ({
-    name: card.name,
-    status: card.status,
-    reason: card.reason || "",
-    addedBy: card.source || "OCG Official"
-  }));
-
-  if (type === 'json') {
-    // Xuất file JSON
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportData, null, 2));
-    const downloadAnchor = document.createElement('a');
-    downloadAnchor.setAttribute("href", dataStr);
-    downloadAnchor.setAttribute("download", `YGO_Community_Banlist_${new Date().toISOString().slice(0, 10)}.json`);
-    document.body.appendChild(downloadAnchor);
-    downloadAnchor.click();
-    downloadAnchor.remove();
-  } else if (type === 'txt') {
-    // Xuất file TXT (Mở rộng nếu cần)
-    let txtContent = "=== YGO COMMUNITY BANLIST ===\n\n";
-    ['Forbidden', 'Limited', 'Semi-Limited'].forEach(status => {
-      txtContent += `[${status.toUpperCase()}]\n`;
-      const group = exportData.filter(c => c.status === status);
-      group.forEach(c => {
-        txtContent += `- ${c.name}${c.reason ? ` (${c.reason})` : ''}\n`;
-      });
-      txtContent += "\n";
-    });
-    // Giải mã chuỗi mã hóa Base64 thành mảng các ID lá bài (32-bit integer)
-function parseYdkeBlock(base64Str) {
-  if (!base64Str) return [];
-  try {
-    const binaryStr = atob(base64Str);
-    const bytes = new Uint8Array(binaryStr.length);
-    for (let i = 0; i < binaryStr.length; i++) {
-      bytes[i] = binaryStr.charCodeAt(i);
-    }
-    const cardIds = [];
-    // Tệp binary YDKE lưu mỗi Card ID dưới dạng 4 bytes (uint32 Little-Endian)
-    for (let i = 0; i < bytes.length; i += 4) {
-      const id = bytes[i] | (bytes[i + 1] << 8) | (bytes[i + 2] << 16) | (bytes[i + 3] << 24);
-      cardIds.push(id);
-    }
-    return cardIds;
-  } catch (e) {
-    console.error("Lỗi giải mã YDKE Block:", e);
-    return [];
-  }
-}
-
-// Hàm xử lý chính khi người dùng nhấn "Kiểm Tra"
-async function checkYdkeDeck() {
-  const ydkeStr = document.getElementById('ydkeInput').value.trim();
-  const resultDiv = document.getElementById('deckCheckResult');
-
-  if (!ydkeStr.startsWith('ydke://')) {
-    resultDiv.className = "p-4 rounded-lg border text-xs bg-red-950/50 border-red-800 text-red-300";
-    resultDiv.innerHTML = "❌ Chuỗi YDKE không hợp lệ! Mã phải bắt đầu bằng <b>ydke://</b>";
-    resultDiv.classList.remove('hidden');
-    return;
-  }
-
-  // Tách 3 phần: Main!Extra!Side!
-  const content = ydkeStr.replace('ydke://', '');
-  const parts = content.split('!');
-
-  const mainIds = parseYdkeBlock(parts[0] || '');
-  const extraIds = parseYdkeBlock(parts[1] || '');
-  const sideIds = parseYdkeBlock(parts[2] || '');
-
-  const allCardIds = [...mainIds, ...extraIds, ...sideIds];
-
-  if (allCardIds.length === 0) {
-    resultDiv.className = "p-4 rounded-lg border text-xs bg-red-950/50 border-red-800 text-red-300";
-    resultDiv.innerHTML = "⚠️ Không tìm thấy lá bài nào trong chuỗi YDKE này.";
-    resultDiv.classList.remove('hidden');
-    return;
-  }
-
-  // Đếm số lượng từng lá bài trong toàn bộ Deck (Main + Extra + Side)
-  const cardCounts = {};
-  allCardIds.forEach(id => {
-    cardCounts[id] = (cardCounts[id] || 0) + 1;
-  });
-
-  // Gom danh sách các lá phạm quy
-  const violations = [];
-
-  // Tạo Map từ combinedBanlist hiện tại để tra cứu nhanh theo ID
-  // Lưu ý: combinedBanlist chứa các bài đã được Admin CÔNG BỐ
-  const banlistMap = new Map();
-  combinedBanlist.forEach(card => {
-    banlistMap.set(Number(card.id), card);
-  });
-
-  for (const [idStr, count] of Object.entries(cardCounts)) {
-    const cardId = Number(idStr);
-    const banInfo = banlistMap.get(cardId);
-    
-    let maxAllowed = 3; // Mặc định bài không thuộc banlist được dùng tối đa 3 lá
-    let statusText = "Unlimited";
-
-    if (banInfo) {
-      if (banInfo.status === 'Forbidden') maxAllowed = 0;
-      else if (banInfo.status === 'Limited') maxAllowed = 1;
-      else if (banInfo.status === 'Semi-Limited') maxAllowed = 2;
-      statusText = banInfo.status;
-    }
-
-    if (count > maxAllowed) {
-      // Nếu không có tên lá bài sẵn trong banlist, gọi API YGOPRODeck lấy tên
-      let cardName = banInfo ? banInfo.name : `ID: ${cardId}`;
-      if (!banInfo) {
-        try {
-          const res = await fetch(`https://db.ygoprodeck.com/api/v7/cardinfo.php?id=${cardId}`);
-          const data = await res.json();
-          if (data && data.data && data.data[0]) {
-            cardName = data.data[0].name;
-          }
-        } catch(e) {}
+    function downloadBanlist(type = 'json') {
+      if (!combinedBanlist || combinedBanlist.length === 0) {
+        return alert("⚠️ Dữ liệu Banlist chưa sẵn sàng hoặc đang trống!");
       }
 
-      violations.push({
-        name: cardName,
-        count: count,
-        maxAllowed: maxAllowed,
-        status: statusText
-      });
+      const exportData = combinedBanlist.map(card => ({
+        name: card.name,
+        status: card.status,
+        reason: card.reason || "",
+        addedBy: card.source || "OCG Official"
+      }));
+
+      if (type === 'json') {
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportData, null, 2));
+        const downloadAnchor = document.createElement('a');
+        downloadAnchor.setAttribute("href", dataStr);
+        downloadAnchor.setAttribute("download", `YGO_Community_Banlist_${new Date().toISOString().slice(0, 10)}.json`);
+        document.body.appendChild(downloadAnchor);
+        downloadAnchor.click();
+        downloadAnchor.remove();
+      } else if (type === 'txt') {
+        let txtContent = "=== YGO COMMUNITY BANLIST ===\n\n";
+        ['Forbidden', 'Limited', 'Semi-Limited'].forEach(status => {
+          txtContent += `[${status.toUpperCase()}]\n`;
+          const group = exportData.filter(c => c.status === status);
+          group.forEach(c => {
+            txtContent += `- ${c.name}${c.reason ? ` (${c.reason})` : ''}\n`;
+          });
+          txtContent += "\n";
+        });
+
+        const dataStr = "data:text/plain;charset=utf-8," + encodeURIComponent(txtContent);
+        const downloadAnchor = document.createElement('a');
+        downloadAnchor.setAttribute("href", dataStr);
+        downloadAnchor.setAttribute("download", `YGO_Community_Banlist_${new Date().toISOString().slice(0, 10)}.txt`);
+        document.body.appendChild(downloadAnchor);
+        downloadAnchor.click();
+        downloadAnchor.remove();
+      }
     }
-  }
 
-  // Hiển thị kết quả
-  if (violations.length === 0) {
-    resultDiv.className = "p-4 rounded-lg border text-xs bg-emerald-950/50 border-emerald-800 text-emerald-300";
-    resultDiv.innerHTML = `
-      <div class="font-bold text-sm mb-1">✅ Bộ bài HỢP LỆ!</div>
-      <p class="text-slate-300">Tổng số lá: <b>${allCardIds.length}</b> (Main: ${mainIds.length} | Extra: ${extraIds.length} | Side: ${sideIds.length}). Tất cả các lá bài đều tuân thủ đúng Banlist hiện tại.</p>
-    `;
-  } else {
-    resultDiv.className = "p-4 rounded-lg border text-xs bg-red-950/50 border-red-800 text-red-300 space-y-2";
-    let html = `<div class="font-bold text-sm">❌ Bộ bài VI PHẠM Banlist (${violations.length} lá vi phạm):</div><ul class="list-disc pl-5 space-y-1">`;
-    
-    violations.forEach(v => {
-      html += `<li><b>${v.name}</b>: Bạn đang dùng <b>${v.count}</b> lá (Giới hạn trạng thái <i>${v.status}</i>: tối đa <b>${v.maxAllowed}</b> lá).</li>`;
-    });
-    
-    html += `</ul>`;
-    resultDiv.innerHTML = html;
-  }
+    // --- CÁC HÀM XỬ LÝ YDKE DECK CHECKER ---
 
-  resultDiv.classList.remove('hidden');
-}
-    const dataStr = "data:text/plain;charset=utf-8," + encodeURIComponent(txtContent);
-    const downloadAnchor = document.createElement('a');
-    downloadAnchor.setAttribute("href", dataStr);
-    downloadAnchor.setAttribute("download", `YGO_Community_Banlist_${new Date().toISOString().slice(0, 10)}.txt`);
-    document.body.appendChild(downloadAnchor);
-    downloadAnchor.click();
-    downloadAnchor.remove();
-  }
-}
+    // Giải mã Base64 YDKE thành danh sách Card ID (32-bit Little-Endian)
+    function parseYdkeBlock(base64Str) {
+      if (!base64Str) return [];
+      try {
+        const binaryStr = atob(base64Str);
+        const bytes = new Uint8Array(binaryStr.length);
+        for (let i = 0; i < binaryStr.length; i++) {
+          bytes[i] = binaryStr.charCodeAt(i);
+        }
+        const cardIds = [];
+        for (let i = 0; i < bytes.length; i += 4) {
+          const id = bytes[i] | (bytes[i + 1] << 8) | (bytes[i + 2] << 16) | (bytes[i + 3] << 24);
+          cardIds.push(id);
+        }
+        return cardIds;
+      } catch (e) {
+        console.error("Lỗi giải mã YDKE Block:", e);
+        return [];
+      }
+    }
+
+    // Kiểm tra bộ bài YDKE đối chiếu với Banlist
+    async function checkYdkeDeck() {
+      const ydkeStr = document.getElementById('ydkeInput').value.trim();
+      const resultDiv = document.getElementById('deckCheckResult');
+
+      if (!ydkeStr.startsWith('ydke://')) {
+        resultDiv.className = "p-4 rounded-lg border text-xs bg-red-950/50 border-red-800 text-red-300";
+        resultDiv.innerHTML = "❌ Chuỗi YDKE không hợp lệ! Mã phải bắt đầu bằng <b>ydke://</b>";
+        resultDiv.classList.remove('hidden');
+        return;
+      }
+
+      const content = ydkeStr.replace('ydke://', '');
+      const parts = content.split('!');
+
+      const mainIds = parseYdkeBlock(parts[0] || '');
+      const extraIds = parseYdkeBlock(parts[1] || '');
+      const sideIds = parseYdkeBlock(parts[2] || '');
+
+      const allCardIds = [...mainIds, ...extraIds, ...sideIds];
+
+      if (allCardIds.length === 0) {
+        resultDiv.className = "p-4 rounded-lg border text-xs bg-red-950/50 border-red-800 text-red-300";
+        resultDiv.innerHTML = "⚠️ Không tìm thấy lá bài nào trong chuỗi YDKE này.";
+        resultDiv.classList.remove('hidden');
+        return;
+      }
+
+      // Đếm số lượng từng lá bài
+      const cardCounts = {};
+      allCardIds.forEach(id => {
+        cardCounts[id] = (cardCounts[id] || 0) + 1;
+      });
+
+      const violations = [];
+      const banlistMap = new Map();
+      combinedBanlist.forEach(card => {
+        banlistMap.set(Number(card.id), card);
+      });
+
+      for (const [idStr, count] of Object.entries(cardCounts)) {
+        const cardId = Number(idStr);
+        const banInfo = banlistMap.get(cardId);
+        
+        let maxAllowed = 3;
+        let statusText = "Unlimited";
+
+        if (banInfo) {
+          if (banInfo.status === 'Forbidden') maxAllowed = 0;
+          else if (banInfo.status === 'Limited') maxAllowed = 1;
+          else if (banInfo.status === 'Semi-Limited') maxAllowed = 2;
+          statusText = banInfo.status;
+        }
+
+        if (count > maxAllowed) {
+          let cardName = banInfo ? banInfo.name : `ID: ${cardId}`;
+          if (!banInfo) {
+            try {
+              const res = await fetch(`https://db.ygoprodeck.com/api/v7/cardinfo.php?id=${cardId}`);
+              const data = await res.json();
+              if (data && data.data && data.data[0]) {
+                cardName = data.data[0].name;
+              }
+            } catch(e) {}
+          }
+
+          violations.push({
+            name: cardName,
+            count: count,
+            maxAllowed: maxAllowed,
+            status: statusText
+          });
+        }
+      }
+
+      // Hiển thị kết quả
+      if (violations.length === 0) {
+        resultDiv.className = "p-4 rounded-lg border text-xs bg-emerald-950/50 border-emerald-800 text-emerald-300";
+        resultDiv.innerHTML = `
+          <div class="font-bold text-sm mb-1">✅ Bộ bài HỢP LỆ!</div>
+          <p class="text-slate-300">Tổng số lá: <b>${allCardIds.length}</b> (Main: ${mainIds.length} | Extra: ${extraIds.length} | Side: ${sideIds.length}). Tất cả các lá bài đều tuân thủ đúng Banlist hiện tại.</p>
+        `;
+      } else {
+        resultDiv.className = "p-4 rounded-lg border text-xs bg-red-950/50 border-red-800 text-red-300 space-y-2";
+        let html = `<div class="font-bold text-sm">❌ Bộ bài VI PHẠM Banlist (${violations.length} lá vi phạm):</div><ul class="list-disc pl-5 space-y-1">`;
+        
+        violations.forEach(v => {
+          html += `<li><b>${v.name}</b>: Bạn đang dùng <b>${v.count}</b> lá (Giới hạn trạng thái <i>${v.status}</i>: tối đa <b>${v.maxAllowed}</b> lá).</li>`;
+        });
+        
+        html += `</ul>`;
+        resultDiv.innerHTML = html;
+      }
+
+      resultDiv.classList.remove('hidden');
+    }
   </script>
 </body>
 </html>
