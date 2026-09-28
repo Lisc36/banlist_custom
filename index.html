@@ -1,758 +1,118 @@
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>YGO Banlist Hub - Fast Edition</title>
-  
-  <!-- Firebase SDKs -->
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+// Kiểm tra bộ bài YDKE đối chiếu với Banlist (Đã hỗ trợ chuẩn xác Alt Art / Alternate Artwork)
+async function checkYdkeDeck() {
+  const ydkeStr = document.getElementById('ydkeInput').value.trim();
+  const resultDiv = document.getElementById('deckCheckResult');
 
-  <!-- Tailwind CSS & FontAwesome -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  
-  <style>
-    body { background-color: #0f172a; color: #f8fafc; font-family: system-ui, -apple-system, sans-serif; }
-    .card-glow:hover { box-shadow: 0 0 10px rgba(234, 179, 8, 0.4); }
-    .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-    .custom-scrollbar::-webkit-scrollbar-track { background: #1e293b; }
-    .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
-  </style>
-</head>
-<body class="min-h-screen flex flex-col justify-between custom-scrollbar">
+  if (!ydkeStr.startsWith('ydke://')) {
+    resultDiv.className = "p-4 rounded-lg border text-xs bg-red-950/50 border-red-800 text-red-300";
+    resultDiv.innerHTML = "❌ Chuỗi YDKE không hợp lệ! Mã phải bắt đầu bằng <b>ydke://</b>";
+    resultDiv.classList.remove('hidden');
+    return;
+  }
 
-  <!-- Header -->
-  <header class="bg-slate-900 border-b border-slate-800 p-4 sticky top-0 z-50">
-    <div class="max-w-7xl mx-auto flex justify-between items-center">
-      <div class="flex items-center gap-3">
-        <i class="fa-solid fa-crown text-yellow-500 text-2xl"></i>
-        <div>
-          <h1 class="font-bold text-xl tracking-wide text-yellow-500">YGO COMMUNITY BANLIST</h1>
-          <p class="text-xs text-slate-400">Siêu mượt • Tối ưu hóa bộ nhớ</p>
-        </div>
-      </div>
-      
-      <!-- User Auth Bar -->
-      <div id="authContainer" class="flex items-center gap-3">
-        <button id="btnLogin" onclick="loginWithGoogle()" class="bg-yellow-500 hover:bg-yellow-600 text-slate-950 font-bold px-4 py-2 rounded-lg text-sm transition flex items-center gap-2">
-          <i class="fa-brands fa-google"></i> Đăng nhập
-        </button>
-        <div id="userInfo" class="hidden flex items-center gap-3 bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700">
-          <img id="userAvatar" class="w-7 h-7 rounded-full border border-yellow-500" src="" alt="Avatar">
-          <div class="flex flex-col">
-            <span id="userName" class="text-xs font-semibold text-slate-200">User</span>
-            <span id="userPermissionBadge" class="text-[9px] text-yellow-500 font-bold"></span>
-          </div>
-          <button onclick="logout()" class="text-slate-400 hover:text-red-400 text-sm ml-2" title="Đăng xuất"><i class="fa-solid fa-right-from-bracket"></i></button>
-        </div>
-      </div>
-    </div>
-  </header>
+  // Hiển thị trạng thái đang kiểm tra
+  resultDiv.className = "p-4 rounded-lg border text-xs bg-slate-950 border-slate-800 text-yellow-500";
+  resultDiv.innerHTML = '<i class="fa-solid fa-circle-notch animate-spin mr-2"></i> Đang giải mã YDKE và đối chiếu Banlist...';
+  resultDiv.classList.remove('hidden');
 
-  <!-- Main Body -->
-  <main class="max-w-7xl mx-auto w-full p-4 md:p-6 flex-grow space-y-8">
+  const content = ydkeStr.replace('ydke://', '');
+  const parts = content.split('!');
 
-    <!-- ADMIN CONTROL PANEL -->
-    <section id="adminPanel" class="hidden bg-slate-900 border border-yellow-500/40 rounded-xl p-5 shadow-xl space-y-4">
-      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-800 pb-3 gap-3">
-        <h2 class="font-bold text-lg text-yellow-500 flex items-center gap-2">
-          <i class="fa-solid fa-user-shield"></i> Bảng Quản Lý Admin
-        </h2>
-        <button onclick="publishAllSubmissions()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2 rounded-lg text-xs transition flex justify-center items-center gap-2">
-          <i class="fa-solid fa-bullhorn"></i> CÔNG BỐ TOÀN BỘ BANLIST MỚI
-        </button>
-      </div>
+  const mainIds = parseYdkeBlock(parts[0] || '');
+  const extraIds = parseYdkeBlock(parts[1] || '');
+  const sideIds = parseYdkeBlock(parts[2] || '');
 
-      <div class="overflow-x-auto">
-        <p class="text-xs text-slate-400 mb-2">Đang chờ công bố (<span id="pendingCount">0</span> lá):</p>
-        <table class="w-full text-left text-xs text-slate-300 border-collapse">
-          <thead>
-            <tr class="border-b border-slate-800 bg-slate-950 text-slate-400">
-              <th class="p-2">Bài Thủ</th>
-              <th class="p-2">Tên Lá Bài</th>
-              <th class="p-2">Trạng Thái</th>
-              <th class="p-2">Lý Do</th>
-              <th class="p-2">Tình Trạng</th>
-              <th class="p-2">Xóa</th>
-            </tr>
-          </thead>
-          <tbody id="adminTableBody">
-            <tr><td colspan="6" class="p-4 text-center text-slate-500">Chưa có bài nộp</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
+  const allCardIds = [...mainIds, ...extraIds, ...sideIds];
 
-    <!-- SUBMISSION PANEL -->
-    <section class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg">
-      <h2 class="font-bold text-lg text-slate-100 flex items-center gap-2 mb-4 border-b border-slate-800 pb-3">
-        <i class="fa-solid fa-plus-circle text-yellow-500"></i> Nộp Lá Bài Vào Banlist Giải Đấu
-      </h2>
+  if (allCardIds.length === 0) {
+    resultDiv.className = "p-4 rounded-lg border text-xs bg-red-950/50 border-red-800 text-red-300";
+    resultDiv.innerHTML = "⚠️ Không tìm thấy lá bài nào trong chuỗi YDKE này.";
+    return;
+  }
 
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div class="md:col-span-3 space-y-4">
-          <div class="space-y-1 relative">
-            <label class="block text-xs font-semibold text-slate-300 uppercase">1. Tìm Tên Lá Bài</label>
-            <input type="text" id="cardSearch" oninput="handleCardSearch(this.value)" placeholder="Gõ từ khóa tên lá bài..." 
-                   class="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-sm text-slate-100 focus:outline-none focus:border-yellow-500">
-            <div id="searchDropdown" class="hidden absolute top-full left-0 right-0 bg-slate-900 border border-slate-700 rounded-lg shadow-xl max-h-60 overflow-y-auto z-50 mt-1 custom-scrollbar"></div>
-          </div>
+  // 1. Đếm số lượng ID xuất hiện
+  const cardCounts = {};
+  allCardIds.forEach(id => {
+    cardCounts[id] = (cardCounts[id] || 0) + 1;
+  });
 
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label class="block text-xs font-semibold text-slate-300 uppercase mb-1">2. Trạng Thái Cấm</label>
-              <select id="banStatus" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-sm text-slate-100 focus:outline-none focus:border-yellow-500">
-                <option value="Forbidden">🚫 Forbidden (0 lá)</option>
-                <option value="Limited">⚠️ Limited (1 lá)</option>
-                <option value="Semi-Limited">🟡 Semi-Limited (2 lá)</option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-xs font-semibold text-slate-300 uppercase mb-1">3. Lý Do Cấm</label>
-              <input type="text" id="banReason" placeholder="Lý do ngắn gọn..." 
-                     class="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-sm text-slate-100 focus:outline-none focus:border-yellow-500">
-            </div>
-          </div>
+  // 2. Tạo Bảng tra cứu Map theo ID và Map theo Name để bắt trọn Alt Art
+  const banlistIdMap = new Map();
+  const banlistNameMap = new Map();
 
-          <button id="btnSubmitProposal" onclick="submitProposal()" class="w-full bg-yellow-500 hover:bg-yellow-600 text-slate-950 font-bold py-3 rounded-lg text-sm transition flex justify-center items-center gap-2">
-            <i class="fa-solid fa-file-export"></i> NỘP LÁ BÀI
-          </button>
+  combinedBanlist.forEach(card => {
+    if (card.id) banlistIdMap.set(Number(card.id), card);
+    if (card.name) banlistNameMap.set(card.name.toLowerCase().trim(), card);
+  });
 
-          <!-- Dòng thông báo xin cấp quyền -->
-          <div class="mt-3 p-3 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-400 flex items-center">
-            <i class="fa-solid fa-circle-info text-yellow-500 mr-2 text-sm flex-shrink-0"></i>
-            <span>
-              Chưa được cấp quyền nộp lá bài? Vui lòng gửi tin nhắn cho 
-              <a href="https://www.facebook.com/lisc.toussaint/" target="_blank" rel="noopener noreferrer" class="text-yellow-500 hover:underline font-bold">
-                Chương Trần
-              </a> 
-              để được cấp quyền cho Gmail của bạn.
-            </span>
-          </div>
-        </div>
+  // 3. Gom mảng đếm theo Tên lá bài (Chuyển toàn bộ Alt Art ID về Tên gốc)
+  const nameCounts = {};
+  const violations = [];
 
-        <div class="flex flex-col items-center justify-center bg-slate-950 border border-slate-800 rounded-lg p-3 min-h-[200px]">
-          <div id="cardPreviewContainer" class="w-24 h-36 border border-dashed border-slate-800 rounded flex flex-col items-center justify-center text-center p-1">
-            <i class="fa-regular fa-image text-2xl text-slate-700 mb-1"></i>
-            <span class="text-[10px] text-slate-600">Preview</span>
-          </div>
-          <h4 id="previewTitle" class="mt-2 font-bold text-xs text-slate-300 text-center line-clamp-1">--</h4>
-        </div>
-      </div>
-    </section>
+  for (const [idStr, count] of Object.entries(cardCounts)) {
+    const cardId = Number(idStr);
+    let banInfo = banlistIdMap.get(cardId);
+    let cardName = banInfo ? banInfo.name : null;
 
-    <!-- YDKE DECK CHECKER SECTION -->
-    <section class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg space-y-4">
-      <h2 class="font-bold text-lg text-slate-100 flex items-center gap-2 border-b border-slate-800 pb-3">
-        <i class="fa-solid fa-box-archive text-yellow-500"></i> Kiểm Tra Bộ Bài (YDKE Deck Checker)
-      </h2>
-
-      <div class="space-y-3">
-        <label class="block text-xs font-semibold text-slate-300 uppercase">Dán chuỗi mã YDKE vào đây:</label>
-        <div class="flex gap-2">
-          <input type="text" id="ydkeInput" placeholder="ydke://..." 
-                 class="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-sm text-slate-100 focus:outline-none focus:border-yellow-500 font-mono">
-          <button onclick="checkYdkeDeck()" class="bg-yellow-500 hover:bg-yellow-600 text-slate-950 font-bold px-5 py-3 rounded-lg text-sm transition flex items-center gap-2 whitespace-nowrap">
-            <i class="fa-solid fa-magnifying-glass font-bold"></i> Kiểm Tra
-          </button>
-        </div>
-      </div>
-
-      <!-- Kết quả kiểm tra -->
-      <div id="deckCheckResult" class="hidden p-4 rounded-lg border text-xs space-y-2"></div>
-    </section>
-
-    <!-- BANLIST DISPLAY -->
-    <section class="space-y-6">
-      
-      <div class="flex flex-col sm:flex-row justify-between items-center gap-4 bg-slate-900 border border-slate-800 rounded-xl p-4">
-        <div>
-          <h3 class="font-bold text-lg text-yellow-500 flex items-center gap-2">
-            <i class="fa-solid fa-list-check"></i> BANLIST DÀNH CHO GIẢI ĐẤU
-          </h3>
-          <p class="text-xs text-slate-400">Các lá do Bài Thủ nộp thành công sẽ được ghim lên đầu</p>
-        </div>
-        
-        <div class="flex items-center gap-2 w-full sm:w-auto">
-          <input type="text" id="banlistSearch" oninput="handleBanlistFilter(this.value)" placeholder="🔍 Lọc nhanh trong banlist..." 
-                 class="w-full sm:w-64 bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-yellow-500">
-          
-          <!-- Nút tải Banlist về -->
-          <button onclick="downloadBanlist('json')" title="Tải file JSON" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-yellow-500 font-bold px-3 py-2 rounded-lg text-xs transition flex items-center gap-1 whitespace-nowrap">
-            <i class="fa-solid fa-download"></i> Tải về (JSON)
-          </button>
-        </div>
-      </div>
-
-      <div id="banlistLoader" class="text-center py-6 text-slate-500">
-        <i class="fa-solid fa-circle-notch animate-spin text-2xl text-yellow-500 mb-2"></i>
-        <p class="text-xs">Đang tải Banlist...</p>
-      </div>
-
-      <!-- FORBIDDEN -->
-      <div class="bg-slate-900 border border-red-500/30 rounded-xl p-5 space-y-4">
-        <div class="flex items-center gap-3 border-b border-red-500/20 pb-3">
-          <span class="w-5 h-5 rounded-full bg-red-600 flex items-center justify-center text-xs font-bold">0</span>
-          <h3 class="font-bold text-base text-red-400 uppercase">🚫 FORBIDDEN (Cấm 0 lá)</h3>
-          <span id="forbiddenCount" class="ml-auto text-xs bg-red-950 text-red-400 border border-red-800 px-2 py-0.5 rounded-full font-bold">0</span>
-        </div>
-        <div id="forbiddenGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3"></div>
-      </div>
-
-      <!-- LIMITED -->
-      <div class="bg-slate-900 border border-orange-500/30 rounded-xl p-5 space-y-4">
-        <div class="flex items-center gap-3 border-b border-orange-500/20 pb-3">
-          <span class="w-5 h-5 rounded-full bg-orange-500 flex items-center justify-center text-xs font-bold text-slate-950">1</span>
-          <h3 class="font-bold text-base text-orange-400 uppercase">⚠️ LIMITED (Tối đa 1 lá)</h3>
-          <span id="limitedCount" class="ml-auto text-xs bg-orange-950 text-orange-400 border border-orange-800 px-2 py-0.5 rounded-full font-bold">0</span>
-        </div>
-        <div id="limitedGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3"></div>
-      </div>
-
-      <!-- SEMI-LIMITED -->
-      <div class="bg-slate-900 border border-yellow-500/30 rounded-xl p-5 space-y-4">
-        <div class="flex items-center gap-3 border-b border-yellow-500/20 pb-3">
-          <span class="w-5 h-5 rounded-full bg-yellow-500 flex items-center justify-center text-xs font-bold text-slate-950">2</span>
-          <h3 class="font-bold text-base text-yellow-400 uppercase">🟡 SEMI-LIMITED (Tối đa 2 lá)</h3>
-          <span id="semiLimitedCount" class="ml-auto text-xs bg-yellow-950 text-yellow-400 border border-yellow-800 px-2 py-0.5 rounded-full font-bold">0</span>
-        </div>
-        <div id="semiLimitedGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3"></div>
-      </div>
-
-    </section>
-
-  </main>
-
-  <footer class="bg-slate-950 border-t border-slate-900 py-4 text-center text-xs text-slate-600">
-    YGO Banlist Engine - Fast Async Rendering
-  </footer>
-
-  <script>
-    const ADMIN_EMAILS = ["trananhchuong112@gmail.com"];
-    const ALLOWED_VOTERS = [
-      "trananhchuong112@gmail.com",
-      "hokhaidien.dt2017@gmail.com",
-      "kurumitokisaki15111006@gmail.com",
-      "Mrlinhxyz123@gmail.com",
-      "lehuuhoangan2009@gmail.com",
-      "Longsigma04@gmail.com",
-      "kitkalo217@gmail.com",
-      "thithoi666@gmail.com",
-      "omegachilantaisaurus@gmail.com",
-      "tohonglinh13@gmail.com",
-      "hiepnguyen.271203@gmail.com",
-      "cuongdakpoyugi@gmail.com",
-      "vcl20042008@gmail.com",
-      "superduys123@gmail.com",
-      "trungluong2008.ajc@gmail.com",
-    ];
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyA39hLsaOJNAp3PRPb1WmWSA4Y6kPEj14Y",
-      authDomain: "custom-banlist.firebaseapp.com",
-      projectId: "custom-banlist",
-      storageBucket: "custom-banlist.firebasestorage.app",
-      messagingSenderId: "415934580723",
-      appId: "1:415934580723:web:39b0cf73b3c43933bdb486"
-    };
-
-    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const db = firebase.firestore();
-
-    let currentUser = null;
-    let selectedCard = null;
-    let ocgBanlistCards = [];
-    let allSubmissions = [];
-    let combinedBanlist = [];
-
-    window.addEventListener('DOMContentLoaded', () => {
-      auth.onAuthStateChanged(user => {
-        currentUser = user;
-        updateUserUI();
-      });
-
-      setupRealtimeListeners();
-      fetchOCGBanlistFast();
-    });
-
-    function loginWithGoogle() {
-      auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(e => alert("Lỗi: " + e.message));
-    }
-    function logout() { auth.signOut(); }
-
-    function updateUserUI() {
-      const adminPanel = document.getElementById('adminPanel');
-      const badge = document.getElementById('userPermissionBadge');
-      const btnSubmit = document.getElementById('btnSubmitProposal');
-
-      if (currentUser) {
-        document.getElementById('btnLogin').classList.add('hidden');
-        document.getElementById('userInfo').classList.remove('hidden');
-        document.getElementById('userAvatar').src = currentUser.photoURL || '';
-        document.getElementById('userName').textContent = currentUser.displayName || currentUser.email;
-
-        const isAdmin = ADMIN_EMAILS.includes(currentUser.email);
-        const isVoter = ALLOWED_VOTERS.includes(currentUser.email);
-
-        if (isAdmin) {
-          adminPanel.classList.remove('hidden');
-          badge.textContent = "⭐ Admin";
-        } else {
-          adminPanel.classList.add('hidden');
-          badge.textContent = isVoter ? "✅ Member" : "🔒 Guest";
-        }
-
-        // Khóa nút nếu chưa được cấp quyền
-        if (!isAdmin && !isVoter) {
-          if (btnSubmit) {
-            btnSubmit.disabled = true;
-            btnSubmit.classList.add('opacity-50', 'cursor-not-allowed');
-            btnSubmit.innerHTML = `🔒 CHƯA CÓ QUYỀN (Nhắn <a href="https://www.facebook.com/lisc.toussaint/" target="_blank" class="underline text-yellow-400 font-bold ml-1">Chương Trần</a>)`;
-          }
-        } else {
-          if (btnSubmit) {
-            btnSubmit.disabled = false;
-            btnSubmit.classList.remove('opacity-50', 'cursor-not-allowed');
-            btnSubmit.innerHTML = `<i class="fa-solid fa-file-export"></i> NỘP LÁ BÀI`;
-          }
-        }
-      } else {
-        document.getElementById('btnLogin').classList.remove('hidden');
-        document.getElementById('userInfo').classList.add('hidden');
-        adminPanel.classList.add('hidden');
-
-        if (btnSubmit) {
-          btnSubmit.disabled = false;
-          btnSubmit.classList.remove('opacity-50', 'cursor-not-allowed');
-          btnSubmit.innerHTML = `<i class="fa-solid fa-file-export"></i> NỘP LÁ BÀI`;
-        }
-      }
-    }
-
-    // TẢI BANLIST OCG SIÊU NHANH BẰNG CACHE + CHUNK MAPPING
-    async function fetchOCGBanlistFast() {
-      const cached = localStorage.getItem('ygo_ocg_light_v2');
-      const cacheTime = localStorage.getItem('ygo_ocg_light_time');
-      
-      if (cached && cacheTime && (Date.now() - cacheTime < 86400000)) { // 24 tiếng
-        try {
-          ocgBanlistCards = JSON.parse(cached);
-          combineAndRender();
-          return;
-        } catch(e) {}
-      }
-
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 3500);
-
+    // Nếu ID không khớp trực tiếp (rất có thể là Alt Art ID), gọi API để lấy Tên chuẩn
+    if (!cardName) {
       try {
-        const res = await fetch('https://db.ygoprodeck.com/api/v7/cardinfo.php?banlist=ocg', { signal: controller.signal });
-        clearTimeout(timer);
+        const res = await fetch(`https://db.ygoprodeck.com/api/v7/cardinfo.php?id=${cardId}`);
         const data = await res.json();
-
-        if (data && data.data) {
-          ocgBanlistCards = data.data.map(c => ({
-            id: c.id,
-            name: c.name,
-            image: c.card_images?.[0]?.image_url_small || '',
-            status: mapStatus(c.banlist_info?.ban_ocg)
-          }));
-
-          localStorage.setItem('ygo_ocg_light_v2', JSON.stringify(ocgBanlistCards));
-          localStorage.setItem('ygo_ocg_light_time', Date.now().toString());
+        if (data && data.data && data.data[0]) {
+          cardName = data.data[0].name;
         }
       } catch (e) {
-        console.warn("Dùng fallback nạp bài OCG do API phản hồi chậm");
-      } finally {
-        combineAndRender();
+        cardName = `ID: ${cardId}`;
       }
     }
 
-    function mapStatus(s) {
-      if (!s) return 'Forbidden';
-      const str = s.toLowerCase();
-      if (str.includes('semi')) return 'Semi-Limited';
-      if (str.includes('limited')) return 'Limited';
-      return 'Forbidden';
+    if (!cardName) cardName = `ID: ${cardId}`;
+
+    // Cộng dồn số lượng theo Tên lá bài (Bao gồm cả bản thường lẫn Alt Art)
+    nameCounts[cardName] = (nameCounts[cardName] || 0) + count;
+  }
+
+  // 4. Kiểm tra giới hạn Banlist dựa theo Tên
+  for (const [cardName, totalCount] of Object.entries(nameCounts)) {
+    const banInfo = banlistNameMap.get(cardName.toLowerCase().trim());
+
+    let maxAllowed = 3;
+    let statusText = "Unlimited";
+
+    if (banInfo) {
+      if (banInfo.status === 'Forbidden') maxAllowed = 0;
+      else if (banInfo.status === 'Limited') maxAllowed = 1;
+      else if (banInfo.status === 'Semi-Limited') maxAllowed = 2;
+      statusText = banInfo.status;
     }
 
-    function setupRealtimeListeners() {
-      db.collection('submissions').onSnapshot(snapshot => {
-        allSubmissions = [];
-        snapshot.forEach(doc => allSubmissions.push({ docId: doc.id, ...doc.data() }));
-        renderAdminTable();
-        combineAndRender();
+    if (totalCount > maxAllowed) {
+      violations.push({
+        name: cardName,
+        count: totalCount,
+        maxAllowed: maxAllowed,
+        status: statusText
       });
     }
+  }
 
-    function combineAndRender() {
-      document.getElementById('banlistLoader')?.classList.add('hidden');
-
-      const approved = allSubmissions
-        .filter(s => s.isApproved)
-        .map(sub => ({
-          id: sub.cardId,
-          name: sub.cardName,
-          image: sub.cardImage,
-          status: sub.status,
-          source: sub.userName,
-          reason: sub.reason,
-          isUserAdded: true
-        }));
-
-      const userCardNames = new Set(approved.map(c => c.name.toLowerCase()));
-      const filteredOCG = ocgBanlistCards.filter(c => !userCardNames.has(c.name.toLowerCase()));
-
-      combinedBanlist = [...approved, ...filteredOCG];
-      renderGridBatch(combinedBanlist);
-    }
-
-    function renderGridBatch(list) {
-      const forbidden = list.filter(c => c.status === 'Forbidden');
-      const limited = list.filter(c => c.status === 'Limited');
-      const semi = list.filter(c => c.status === 'Semi-Limited');
-
-      document.getElementById('forbiddenCount').textContent = forbidden.length;
-      document.getElementById('limitedCount').textContent = limited.length;
-      document.getElementById('semiLimitedCount').textContent = semi.length;
-
-      fillGrid('forbiddenGrid', forbidden);
-      fillGrid('limitedGrid', limited);
-      fillGrid('semiLimitedGrid', semi);
-    }
-
-    function fillGrid(gridId, cards) {
-      const grid = document.getElementById(gridId);
-      grid.innerHTML = '';
-
-      if (!cards || cards.length === 0) {
-        grid.innerHTML = '<div class="col-span-full text-center py-2 text-slate-600 text-xs">Không có lá bài</div>';
-        return;
-      }
-
-      const initialCards = cards.slice(0, 40);
-      const frag = document.createDocumentFragment();
-
-      initialCards.forEach(card => {
-        const div = document.createElement('div');
-        div.className = `bg-slate-950 border ${card.isUserAdded ? 'border-yellow-500' : 'border-slate-800'} rounded p-1.5 text-center relative flex flex-col items-center`;
-        div.innerHTML = `
-          ${card.isUserAdded ? '<span class="absolute top-1 left-1 bg-yellow-500 text-slate-950 text-[8px] font-bold px-1 rounded z-10">MỚI</span>' : ''}
-          <div class="w-full aspect-[2/3] bg-slate-900 rounded overflow-hidden mb-1">
-            <img src="${card.image}" loading="lazy" class="w-full h-full object-cover">
-          </div>
-          <h4 class="font-bold text-[11px] text-slate-200 line-clamp-1 w-full">${card.name}</h4>
-          ${card.reason ? `<p class="text-[9px] text-yellow-500/80 truncate w-full italic">${card.reason}</p>` : ''}
-        `;
-        frag.appendChild(div);
-      });
-
-      grid.appendChild(frag);
-
-      if (cards.length > 40) {
-        setTimeout(() => {
-          const restFrag = document.createDocumentFragment();
-          cards.slice(40).forEach(card => {
-            const div = document.createElement('div');
-            div.className = `bg-slate-950 border ${card.isUserAdded ? 'border-yellow-500' : 'border-slate-800'} rounded p-1.5 text-center relative flex flex-col items-center`;
-            div.innerHTML = `
-              ${card.isUserAdded ? '<span class="absolute top-1 left-1 bg-yellow-500 text-slate-950 text-[8px] font-bold px-1 rounded z-10">MỚI</span>' : ''}
-              <div class="w-full aspect-[2/3] bg-slate-900 rounded overflow-hidden mb-1">
-                <img src="${card.image}" loading="lazy" class="w-full h-full object-cover">
-              </div>
-              <h4 class="font-bold text-[11px] text-slate-200 line-clamp-1 w-full">${card.name}</h4>
-            `;
-            restFrag.appendChild(div);
-          });
-          grid.appendChild(restFrag);
-        }, 150);
-      }
-    }
-
-    let filterTimer = null;
-    function handleBanlistFilter(val) {
-      clearTimeout(filterTimer);
-      filterTimer = setTimeout(() => {
-        const q = val.toLowerCase().trim();
-        const filtered = combinedBanlist.filter(c => c.name.toLowerCase().includes(q));
-        renderGridBatch(filtered);
-      }, 150);
-    }
-
-    function renderAdminTable() {
-      const tbody = document.getElementById('adminTableBody');
-      const pending = allSubmissions.filter(s => !s.isApproved);
-      document.getElementById('pendingCount').textContent = pending.length;
-
-      if (allSubmissions.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-slate-500">Chưa có bài nộp</td></tr>';
-        return;
-      }
-
-      tbody.innerHTML = allSubmissions.map(sub => `
-        <tr class="border-b border-slate-800">
-          <td class="p-2 font-semibold">${sub.userName}</td>
-          <td class="p-2 text-yellow-500 font-bold">${sub.cardName}</td>
-          <td class="p-2"><span class="bg-red-500/10 text-red-400 px-1.5 py-0.5 rounded text-[10px]">${sub.status}</span></td>
-          <td class="p-2 text-slate-400 truncate max-w-[120px]">${sub.reason || '---'}</td>
-          <td class="p-2">${sub.isApproved ? '<span class="text-emerald-400 text-[10px]">🟢 Đã công bố</span>' : '<span class="text-yellow-400 text-[10px]">⏳ Chờ</span>'}</td>
-          <td class="p-2"><button onclick="deleteSubmission('${sub.docId}')" class="text-red-400"><i class="fa-solid fa-trash"></i></button></td>
-        </tr>
-      `).join('');
-    }
-
-    async function publishAllSubmissions() {
-      if (!currentUser || !ADMIN_EMAILS.includes(currentUser.email)) return alert("❌ Cần quyền Admin!");
-      if (allSubmissions.length === 0) return alert("Chưa có bài nào!");
-
-      const batch = db.batch();
-      allSubmissions.forEach(sub => {
-        batch.update(db.collection('submissions').doc(sub.docId), { isApproved: true });
-      });
-
-      await batch.commit();
-      alert("🎉 Đã công bố thành công!");
-    }
-
-    async function deleteSubmission(docId) {
-      if (!currentUser || !ADMIN_EMAILS.includes(currentUser.email)) return;
-      if (confirm("Xóa lá này?")) await db.collection('submissions').doc(docId).delete();
-    }
-
-    let searchTimer = null;
-    function handleCardSearch(q) {
-      clearTimeout(searchTimer);
-      const dropdown = document.getElementById('searchDropdown');
-      if (!q || q.trim().length < 2) return dropdown.classList.add('hidden');
-
-      searchTimer = setTimeout(async () => {
-        try {
-          const res = await fetch(`https://db.ygoprodeck.com/api/v7/cardinfo.php?fname=${encodeURIComponent(q.trim())}`);
-          const data = await res.json();
-          dropdown.innerHTML = '';
-          if (data && data.data) {
-            data.data.slice(0, 5).forEach(card => {
-              const div = document.createElement('div');
-              div.className = 'p-2 hover:bg-slate-800 cursor-pointer flex items-center gap-2 border-b border-slate-800/50 text-xs';
-              div.innerHTML = `
-                <img src="${card.card_images[0]?.image_url_small}" class="w-7 h-10 object-cover rounded">
-                <div class="font-bold text-slate-200">${card.name}</div>
-              `;
-              div.onclick = () => selectCard(card);
-              dropdown.appendChild(div);
-            });
-            dropdown.classList.remove('hidden');
-          }
-        } catch (e) {}
-      }, 300);
-    }
-
-    function selectCard(card) {
-      selectedCard = card;
-      document.getElementById('cardSearch').value = card.name;
-      document.getElementById('searchDropdown').classList.add('hidden');
-      document.getElementById('cardPreviewContainer').innerHTML = `<img src="${card.card_images[0]?.image_url_small}" class="w-full h-full object-contain rounded">`;
-      document.getElementById('previewTitle').textContent = card.name;
-    }
-
-    async function submitProposal() {
-      if (!currentUser) {
-        return alert("❌ Vui lòng đăng nhập để thực hiện!");
-      }
-
-      const isAllowed = ADMIN_EMAILS.includes(currentUser.email) || ALLOWED_VOTERS.includes(currentUser.email);
-      if (!isAllowed) {
-        return alert("🔒 Tài khoản của bạn không thuộc danh sách được phép nộp / cấm lá bài!");
-      }
-
-      if (!selectedCard) {
-        return alert("⚠️ Vui lòng tìm và chọn lá bài trước!");
-      }
-
-      try {
-        await db.collection('submissions').doc(currentUser.uid + '_' + selectedCard.id).set({
-          uid: currentUser.uid,
-          userName: currentUser.displayName || currentUser.email,
-          cardId: selectedCard.id,
-          cardName: selectedCard.name,
-          cardImage: selectedCard.card_images[0]?.image_url_small,
-          status: document.getElementById('banStatus').value,
-          reason: document.getElementById('banReason').value || "",
-          isApproved: false,
-          timestamp: firebase.firestore.FieldValue.serverTimestamp()
-        });
-
-        alert(`🎉 Đã nộp [${selectedCard.name}] thành công! Đang chờ Admin duyệt.`);
-      } catch (error) {
-        alert("❌ Lỗi khi gửi dữ liệu: " + error.message);
-      }
-    }
-
-    // Hàm xuất và tải file Banlist về máy
-    function downloadBanlist(type = 'json') {
-      if (!combinedBanlist || combinedBanlist.length === 0) {
-        return alert("⚠️ Dữ liệu Banlist chưa sẵn sàng hoặc đang trống!");
-      }
-
-      const exportData = combinedBanlist.map(card => ({
-        name: card.name,
-        status: card.status,
-        reason: card.reason || "",
-        addedBy: card.source || "OCG Official"
-      }));
-
-      if (type === 'json') {
-        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportData, null, 2));
-        const downloadAnchor = document.createElement('a');
-        downloadAnchor.setAttribute("href", dataStr);
-        downloadAnchor.setAttribute("download", `YGO_Community_Banlist_${new Date().toISOString().slice(0, 10)}.json`);
-        document.body.appendChild(downloadAnchor);
-        downloadAnchor.click();
-        downloadAnchor.remove();
-      } else if (type === 'txt') {
-        let txtContent = "=== YGO COMMUNITY BANLIST ===\n\n";
-        ['Forbidden', 'Limited', 'Semi-Limited'].forEach(status => {
-          txtContent += `[${status.toUpperCase()}]\n`;
-          const group = exportData.filter(c => c.status === status);
-          group.forEach(c => {
-            txtContent += `- ${c.name}${c.reason ? ` (${c.reason})` : ''}\n`;
-          });
-          txtContent += "\n";
-        });
-
-        const dataStr = "data:text/plain;charset=utf-8," + encodeURIComponent(txtContent);
-        const downloadAnchor = document.createElement('a');
-        downloadAnchor.setAttribute("href", dataStr);
-        downloadAnchor.setAttribute("download", `YGO_Community_Banlist_${new Date().toISOString().slice(0, 10)}.txt`);
-        document.body.appendChild(downloadAnchor);
-        downloadAnchor.click();
-        downloadAnchor.remove();
-      }
-    }
-
-    // --- CÁC HÀM XỬ LÝ YDKE DECK CHECKER ---
-
-    // Giải mã Base64 YDKE thành danh sách Card ID (32-bit Little-Endian)
-    function parseYdkeBlock(base64Str) {
-      if (!base64Str) return [];
-      try {
-        const binaryStr = atob(base64Str);
-        const bytes = new Uint8Array(binaryStr.length);
-        for (let i = 0; i < binaryStr.length; i++) {
-          bytes[i] = binaryStr.charCodeAt(i);
-        }
-        const cardIds = [];
-        for (let i = 0; i < bytes.length; i += 4) {
-          const id = bytes[i] | (bytes[i + 1] << 8) | (bytes[i + 2] << 16) | (bytes[i + 3] << 24);
-          cardIds.push(id);
-        }
-        return cardIds;
-      } catch (e) {
-        console.error("Lỗi giải mã YDKE Block:", e);
-        return [];
-      }
-    }
-
-    // Kiểm tra bộ bài YDKE đối chiếu với Banlist
-    async function checkYdkeDeck() {
-      const ydkeStr = document.getElementById('ydkeInput').value.trim();
-      const resultDiv = document.getElementById('deckCheckResult');
-
-      if (!ydkeStr.startsWith('ydke://')) {
-        resultDiv.className = "p-4 rounded-lg border text-xs bg-red-950/50 border-red-800 text-red-300";
-        resultDiv.innerHTML = "❌ Chuỗi YDKE không hợp lệ! Mã phải bắt đầu bằng <b>ydke://</b>";
-        resultDiv.classList.remove('hidden');
-        return;
-      }
-
-      const content = ydkeStr.replace('ydke://', '');
-      const parts = content.split('!');
-
-      const mainIds = parseYdkeBlock(parts[0] || '');
-      const extraIds = parseYdkeBlock(parts[1] || '');
-      const sideIds = parseYdkeBlock(parts[2] || '');
-
-      const allCardIds = [...mainIds, ...extraIds, ...sideIds];
-
-      if (allCardIds.length === 0) {
-        resultDiv.className = "p-4 rounded-lg border text-xs bg-red-950/50 border-red-800 text-red-300";
-        resultDiv.innerHTML = "⚠️ Không tìm thấy lá bài nào trong chuỗi YDKE này.";
-        resultDiv.classList.remove('hidden');
-        return;
-      }
-
-      // Đếm số lượng từng lá bài
-      const cardCounts = {};
-      allCardIds.forEach(id => {
-        cardCounts[id] = (cardCounts[id] || 0) + 1;
-      });
-
-      const violations = [];
-      const banlistMap = new Map();
-      combinedBanlist.forEach(card => {
-        banlistMap.set(Number(card.id), card);
-      });
-
-      for (const [idStr, count] of Object.entries(cardCounts)) {
-        const cardId = Number(idStr);
-        const banInfo = banlistMap.get(cardId);
-        
-        let maxAllowed = 3;
-        let statusText = "Unlimited";
-
-        if (banInfo) {
-          if (banInfo.status === 'Forbidden') maxAllowed = 0;
-          else if (banInfo.status === 'Limited') maxAllowed = 1;
-          else if (banInfo.status === 'Semi-Limited') maxAllowed = 2;
-          statusText = banInfo.status;
-        }
-
-        if (count > maxAllowed) {
-          let cardName = banInfo ? banInfo.name : `ID: ${cardId}`;
-          if (!banInfo) {
-            try {
-              const res = await fetch(`https://db.ygoprodeck.com/api/v7/cardinfo.php?id=${cardId}`);
-              const data = await res.json();
-              if (data && data.data && data.data[0]) {
-                cardName = data.data[0].name;
-              }
-            } catch(e) {}
-          }
-
-          violations.push({
-            name: cardName,
-            count: count,
-            maxAllowed: maxAllowed,
-            status: statusText
-          });
-        }
-      }
-
-      // Hiển thị kết quả
-      if (violations.length === 0) {
-        resultDiv.className = "p-4 rounded-lg border text-xs bg-emerald-950/50 border-emerald-800 text-emerald-300";
-        resultDiv.innerHTML = `
-          <div class="font-bold text-sm mb-1">✅ Bộ bài HỢP LỆ!</div>
-          <p class="text-slate-300">Tổng số lá: <b>${allCardIds.length}</b> (Main: ${mainIds.length} | Extra: ${extraIds.length} | Side: ${sideIds.length}). Tất cả các lá bài đều tuân thủ đúng Banlist hiện tại.</p>
-        `;
-      } else {
-        resultDiv.className = "p-4 rounded-lg border text-xs bg-red-950/50 border-red-800 text-red-300 space-y-2";
-        let html = `<div class="font-bold text-sm">❌ Bộ bài VI PHẠM Banlist (${violations.length} lá vi phạm):</div><ul class="list-disc pl-5 space-y-1">`;
-        
-        violations.forEach(v => {
-          html += `<li><b>${v.name}</b>: Bạn đang dùng <b>${v.count}</b> lá (Giới hạn trạng thái <i>${v.status}</i>: tối đa <b>${v.maxAllowed}</b> lá).</li>`;
-        });
-        
-        html += `</ul>`;
-        resultDiv.innerHTML = html;
-      }
-
-      resultDiv.classList.remove('hidden');
-    }
-  </script>
-</body>
-</html>
+  // 5. Hiển thị kết quả
+  if (violations.length === 0) {
+    resultDiv.className = "p-4 rounded-lg border text-xs bg-emerald-950/50 border-emerald-800 text-emerald-300";
+    resultDiv.innerHTML = `
+      <div class="font-bold text-sm mb-1">✅ Bộ bài HỢP LỆ!</div>
+      <p class="text-slate-300">Tổng số lá: <b>${allCardIds.length}</b> (Main: ${mainIds.length} | Extra: ${extraIds.length} | Side: ${sideIds.length}). Tất cả lá bài (bao gồm cả bản Alt Art) đều tuân thủ đúng Banlist hiện tại.</p>
+    `;
+  } else {
+    resultDiv.className = "p-4 rounded-lg border text-xs bg-red-950/50 border-red-800 text-red-300 space-y-2";
+    let html = `<div class="font-bold text-sm">❌ Bộ bài VI PHẠM Banlist (${violations.length} lá vi phạm):</div><ul class="list-disc pl-5 space-y-1">`;
+    
+    violations.forEach(v => {
+      html += `<li><b>${v.name}</b>: Bạn đang dùng tổng cộng <b>${v.count}</b> lá (Giới hạn trạng thái <i>${v.status}</i>: tối đa <b>${v.maxAllowed}</b> lá).</li>`;
+    });
+    
+    html += `</ul>`;
+    resultDiv.innerHTML = html;
+  }
+}
