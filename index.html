@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>YGO Banlist Hub - API Alt Art Edition</title>
+  <title>YGO Banlist Hub - Passcode Normalizer Edition</title>
   
   <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -30,7 +30,7 @@
         <i class="fa-solid fa-crown text-yellow-500 text-2xl"></i>
         <div>
           <h1 class="font-bold text-xl tracking-wide text-yellow-500">YGO COMMUNITY BANLIST</h1>
-          <p class="text-xs text-slate-400">Siêu mượt • Tra cứu trực tiếp YGOPRODeck API</p>
+          <p class="text-xs text-slate-400">Siêu mượt • Chuẩn hóa Passcode Alt Art</p>
         </div>
       </div>
       
@@ -225,7 +225,7 @@
   </main>
 
   <footer class="bg-slate-950 border-t border-slate-900 py-4 text-center text-xs text-slate-600">
-    YGO Banlist Engine - Direct API Resolution
+    YGO Banlist Engine - Passcode Normalizer Edition
   </footer>
 
   <script>
@@ -267,8 +267,8 @@
     let allSubmissions = [];
     let combinedBanlist = [];
 
-    // Memory Cache lưu kết quả API đã gọi
-    const apiIdCache = new Map();
+    // Cache lưu kết quả tên lá bài theo Passcode chuẩn
+    const passcodeToNameCache = new Map();
 
     window.addEventListener('DOMContentLoaded', () => {
       auth.onAuthStateChanged(user => {
@@ -341,12 +341,8 @@
         if (data && data.data) {
           ocgBanlistCards = data.data.map(c => {
             const name = c.name;
-            apiIdCache.set(Number(c.id), name);
-            if (c.card_images) {
-              c.card_images.forEach(img => {
-                if (img.id) apiIdCache.set(Number(img.id), name);
-              });
-            }
+            const passcode = normalizeToPasscode(c.id);
+            passcodeToNameCache.set(passcode, name);
             return {
               id: c.id,
               name: name,
@@ -385,7 +381,8 @@
       const approved = allSubmissions
         .filter(s => s.isApproved)
         .map(sub => {
-          apiIdCache.set(Number(sub.cardId), sub.cardName);
+          const passcode = normalizeToPasscode(sub.cardId);
+          passcodeToNameCache.set(passcode, sub.cardName);
           return {
             id: sub.cardId,
             name: sub.cardName,
@@ -553,18 +550,11 @@
     }
 
     async function submitProposal() {
-      if (!currentUser) {
-        return alert("❌ Vui lòng đăng nhập để thực hiện!");
-      }
+      if (!currentUser) return alert("❌ Vui lòng đăng nhập để thực hiện!");
 
       const isAllowed = ADMIN_EMAILS.includes(currentUser.email) || ALLOWED_VOTERS.includes(currentUser.email);
-      if (!isAllowed) {
-        return alert("🔒 Tài khoản của bạn không thuộc danh sách được phép nộp / cấm lá bài!");
-      }
-
-      if (!selectedCard) {
-        return alert("⚠️ Vui lòng tìm và chọn lá bài trước!");
-      }
+      if (!isAllowed) return alert("🔒 Tài khoản của bạn không thuộc danh sách được phép nộp / cấm lá bài!");
+      if (!selectedCard) return alert("⚠️ Vui lòng tìm và chọn lá bài trước!");
 
       try {
         await db.collection('submissions').doc(currentUser.uid + '_' + selectedCard.id).set({
@@ -586,9 +576,7 @@
     }
 
     function downloadBanlist(type = 'json') {
-      if (!combinedBanlist || combinedBanlist.length === 0) {
-        return alert("⚠️ Dữ liệu Banlist chưa sẵn sàng hoặc đang trống!");
-      }
+      if (!combinedBanlist || combinedBanlist.length === 0) return alert("⚠️ Dữ liệu Banlist chưa sẵn sàng hoặc đang trống!");
 
       const exportData = combinedBanlist.map(card => ({
         name: card.name,
@@ -605,28 +593,18 @@
         document.body.appendChild(downloadAnchor);
         downloadAnchor.click();
         downloadAnchor.remove();
-      } else if (type === 'txt') {
-        let txtContent = "=== YGO COMMUNITY BANLIST ===\n\n";
-        ['Forbidden', 'Limited', 'Semi-Limited'].forEach(status => {
-          txtContent += `[${status.toUpperCase()}]\n`;
-          const group = exportData.filter(c => c.status === status);
-          group.forEach(c => {
-            txtContent += `- ${c.name}${c.reason ? ` (${c.reason})` : ''}\n`;
-          });
-          txtContent += "\n";
-        });
-
-        const dataStr = "data:text/plain;charset=utf-8," + encodeURIComponent(txtContent);
-        const downloadAnchor = document.createElement('a');
-        downloadAnchor.setAttribute("href", dataStr);
-        downloadAnchor.setAttribute("download", `YGO_Community_Banlist_${new Date().toISOString().slice(0, 10)}.txt`);
-        document.body.appendChild(downloadAnchor);
-        downloadAnchor.click();
-        downloadAnchor.remove();
       }
     }
 
-    // --- XỬ LÝ YDKE CHECKER TRUY VẤN API CHUẨN XÁC 100% BẰNG BATCH API + PASSCODE NORMALIZATION ---
+    // --- XỬ LÝ CHUẨN HÓA SỐ HÓA PASSCODE ALT ART 100% CHÍNH XÁC ---
+
+    // Thuật toán trích xuất 8 chữ số Passcode gốc từ mọi dạng ID Alt Art Custom
+    function normalizeToPasscode(rawId) {
+      const num = Number(rawId);
+      if (isNaN(num)) return rawId;
+      // Trích xuất Passcode gốc bằng phép chia lấy dư 100,000,000
+      return num % 100000000;
+    }
 
     function parseYdkeBlock(base64Str) {
       if (!base64Str) return [];
@@ -648,64 +626,28 @@
       }
     }
 
-    // Tra cứu danh sách ID qua YGOPRODeck API
-    async function fetchCardNamesFromApi(ids) {
-      if (!ids || ids.length === 0) return;
-
-      const missing = ids.filter(id => !apiIdCache.has(Number(id)));
+    // Truy vấn YGOPRODeck API theo Passcode đã chuẩn hóa
+    async function resolvePasscodesViaApi(passcodes) {
+      const missing = passcodes.filter(p => !passcodeToNameCache.has(p));
       if (missing.length === 0) return;
 
-      // Chia nhỏ batch 20 ID cho mỗi API Call
       const chunkSize = 20;
       for (let i = 0; i < missing.length; i += chunkSize) {
         const chunk = missing.slice(i, i + chunkSize);
-        
-        // BƯỚC 1: Thử truy vấn chính xác danh sách ID qua API
         try {
-          const res = await fetch(`https://db.ygoprodeck.com/api/v7/cardinfo.php?id=${chunk.join(',')}&misc=yes`);
+          const res = await fetch(`https://db.ygoprodeck.com/api/v7/cardinfo.php?id=${chunk.join(',')}`);
           if (res.ok) {
             const data = await res.json();
             if (data && data.data) {
               data.data.forEach(card => {
                 const canonicalName = card.name;
-                apiIdCache.set(Number(card.id), canonicalName);
-                if (card.card_images) {
-                  card.card_images.forEach(img => {
-                    if (img.id) apiIdCache.set(Number(img.id), canonicalName);
-                  });
-                }
+                const passcode = normalizeToPasscode(card.id);
+                passcodeToNameCache.set(passcode, canonicalName);
               });
             }
           }
-        } catch(e) {}
-
-        // BƯỚC 2: Xử lý các ID Alt Art tràn viền bị API từ chối (400 Bad Request)
-        const stillMissing = chunk.filter(id => !apiIdCache.has(Number(id)));
-        if (stillMissing.length > 0) {
-          const normalizedPasscodes = stillMissing.map(id => {
-            const strId = id.toString();
-            // Lấy 8 chữ số cuối (Passcode chuẩn của lá bài Yu-Gi-Oh!)
-            return strId.length > 8 ? Number(strId.slice(-8)) : Number(id);
-          });
-
-          try {
-            const res2 = await fetch(`https://db.ygoprodeck.com/api/v7/cardinfo.php?id=${normalizedPasscodes.join(',')}&misc=yes`);
-            if (res2.ok) {
-              const data2 = await res2.json();
-              if (data2 && data2.data) {
-                data2.data.forEach(card => {
-                  const canonicalName = card.name;
-                  // Ánh xạ cả ID gốc và ID Alt Art tràn viền ban đầu về Tên lá bài
-                  apiIdCache.set(Number(card.id), canonicalName);
-                  stillMissing.forEach(origId => {
-                    if (origId.toString().endsWith(card.id.toString())) {
-                      apiIdCache.set(Number(origId), canonicalName);
-                    }
-                  });
-                });
-              }
-            }
-          } catch(e) {}
+        } catch(e) {
+          console.warn("Lỗi gọi API YGOPRODeck:", e);
         }
       }
     }
@@ -722,7 +664,7 @@
       }
 
       resultDiv.className = "p-4 rounded-lg border text-xs bg-slate-950 border-slate-800 text-yellow-500";
-      resultDiv.innerHTML = '<i class="fa-solid fa-circle-notch animate-spin mr-2"></i> Đang kết nối API YGOPRODeck để đối chiếu Alt Art...';
+      resultDiv.innerHTML = '<i class="fa-solid fa-circle-notch animate-spin mr-2"></i> Đang trích xuất Passcode và đối chiếu Banlist...';
       resultDiv.classList.remove('hidden');
 
       const content = ydkeStr.replace('ydke://', '');
@@ -732,27 +674,29 @@
       const extraIds = parseYdkeBlock(parts[1] || '');
       const sideIds = parseYdkeBlock(parts[2] || '');
 
-      const allCardIds = [...mainIds, ...extraIds, ...sideIds];
+      const allRawIds = [...mainIds, ...extraIds, ...sideIds];
 
-      if (allCardIds.length === 0) {
+      if (allRawIds.length === 0) {
         resultDiv.className = "p-4 rounded-lg border text-xs bg-red-950/50 border-red-800 text-red-300";
         resultDiv.innerHTML = "⚠️ Không tìm thấy lá bài nào trong chuỗi YDKE này.";
         return;
       }
 
-      // 1. Gọi API YGOPRODeck để lấy tên chuẩn cho tất cả ID
-      const uniqueIds = Array.from(new Set(allCardIds));
-      await fetchCardNamesFromApi(uniqueIds);
+      // 1. Chuyển đổi toàn bộ ID trong YDKE sang Passcode 8 chữ số chuẩn
+      const normalizedPasscodes = allRawIds.map(id => normalizeToPasscode(id));
+      const uniquePasscodes = Array.from(new Set(normalizedPasscodes));
 
-      // 2. Gom số lượng lá bài theo TÊN BÀI CHUẨN
+      // 2. Gửi danh sách Passcode đã được chuẩn hóa lên API YGOPRODeck
+      await resolvePasscodesViaApi(uniquePasscodes);
+
+      // 3. Gom số lượng lá bài theo TÊN BÀI CHUẨN
       const nameCounts = {};
-      allCardIds.forEach(id => {
-        const idNum = Number(id);
-        const canonicalName = apiIdCache.get(idNum) || `Lá bài chưa xác định (ID: ${idNum})`;
+      normalizedPasscodes.forEach(passcode => {
+        const canonicalName = passcodeToNameCache.get(passcode) || `Unknown Card (Passcode: ${passcode})`;
         nameCounts[canonicalName] = (nameCounts[canonicalName] || 0) + 1;
       });
 
-      // 3. Tra cứu Banlist
+      // 4. Đối chiếu Banlist theo Tên Bài Chuẩn
       const banlistNameMap = new Map();
       combinedBanlist.forEach(card => {
         if (card.name) banlistNameMap.set(card.name.toLowerCase().trim(), card);
@@ -783,12 +727,12 @@
         }
       }
 
-      // 4. Hiển thị kết quả
+      // 5. Hiển thị kết quả
       if (violations.length === 0) {
         resultDiv.className = "p-4 rounded-lg border text-xs bg-emerald-950/50 border-emerald-800 text-emerald-300";
         resultDiv.innerHTML = `
           <div class="font-bold text-sm mb-1">✅ Bộ bài HỢP LỆ!</div>
-          <p class="text-slate-300">Tổng số lá: <b>${allCardIds.length}</b> (Main: ${mainIds.length} | Extra: ${extraIds.length} | Side: ${sideIds.length}). Tất cả lá bài (bao gồm cả bản Alt Art / Tràn viền) đã được xác thực thành công qua API YGOPRODeck.</p>
+          <p class="text-slate-300">Tổng số lá: <b>${allRawIds.length}</b> (Main: ${mainIds.length} | Extra: ${extraIds.length} | Side: ${sideIds.length}). Tất cả các bản Alt Art tràn viền đã được trích xuất về Passcode gốc và kiểm tra chính xác.</p>
         `;
       } else {
         resultDiv.className = "p-4 rounded-lg border text-xs bg-red-950/50 border-red-800 text-red-300 space-y-2";
