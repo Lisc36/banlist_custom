@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>YGO Banlist Hub - Passcode Normalizer Edition</title>
+  <title>YGO Banlist Hub - Full Deck Validator Edition</title>
   
   <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -30,7 +30,7 @@
         <i class="fa-solid fa-crown text-yellow-500 text-2xl"></i>
         <div>
           <h1 class="font-bold text-xl tracking-wide text-yellow-500">YGO COMMUNITY BANLIST</h1>
-          <p class="text-xs text-slate-400">Siêu mượt • Chuẩn hóa Passcode Alt Art</p>
+          <p class="text-xs text-slate-400">Kiểm tra tính hợp lệ Bộ bài & Banlist toàn diện</p>
         </div>
       </div>
       
@@ -120,7 +120,6 @@
             <i class="fa-solid fa-file-export"></i> NỘP LÁ BÀI
           </button>
 
-          <!-- Dòng thông báo xin cấp quyền -->
           <div class="mt-3 p-3 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-400 flex items-center">
             <i class="fa-solid fa-circle-info text-yellow-500 mr-2 text-sm flex-shrink-0"></i>
             <span>
@@ -225,7 +224,7 @@
   </main>
 
   <footer class="bg-slate-950 border-t border-slate-900 py-4 text-center text-xs text-slate-600">
-    YGO Banlist Engine - Passcode Normalizer Edition
+    YGO Banlist Engine - Complete Deck Validation Standard
   </footer>
 
   <script>
@@ -246,6 +245,7 @@
       "vcl20042008@gmail.com",
       "superduys123@gmail.com",
       "trungluong2008.ajc@gmail.com",
+      "thienphucletrong1@gmail.com",
     ];
 
     const firebaseConfig = {
@@ -267,8 +267,8 @@
     let allSubmissions = [];
     let combinedBanlist = [];
 
-    // Cache lưu kết quả tên lá bài theo Passcode chuẩn
-    const passcodeToNameCache = new Map();
+    // Cache lưu ID -> Tên lá bài
+    const apiIdCache = new Map();
 
     window.addEventListener('DOMContentLoaded', () => {
       auth.onAuthStateChanged(user => {
@@ -341,8 +341,12 @@
         if (data && data.data) {
           ocgBanlistCards = data.data.map(c => {
             const name = c.name;
-            const passcode = normalizeToPasscode(c.id);
-            passcodeToNameCache.set(passcode, name);
+            apiIdCache.set(Number(c.id), name);
+            if (c.card_images) {
+              c.card_images.forEach(img => {
+                if (img.id) apiIdCache.set(Number(img.id), name);
+              });
+            }
             return {
               id: c.id,
               name: name,
@@ -381,8 +385,7 @@
       const approved = allSubmissions
         .filter(s => s.isApproved)
         .map(sub => {
-          const passcode = normalizeToPasscode(sub.cardId);
-          passcodeToNameCache.set(passcode, sub.cardName);
+          apiIdCache.set(Number(sub.cardId), sub.cardName);
           return {
             id: sub.cardId,
             name: sub.cardName,
@@ -596,15 +599,7 @@
       }
     }
 
-    // --- XỬ LÝ CHUẨN HÓA SỐ HÓA PASSCODE ALT ART 100% CHÍNH XÁC ---
-
-    // Thuật toán trích xuất 8 chữ số Passcode gốc từ mọi dạng ID Alt Art Custom
-    function normalizeToPasscode(rawId) {
-      const num = Number(rawId);
-      if (isNaN(num)) return rawId;
-      // Trích xuất Passcode gốc bằng phép chia lấy dư 100,000,000
-      return num % 100000000;
-    }
+    // --- XỬ LÝ YDKE PARSER & QUY ĐỔI ALT ART TRỪ PASSCODE (-1, -2, -3) ---
 
     function parseYdkeBlock(base64Str) {
       if (!base64Str) return [];
@@ -626,31 +621,44 @@
       }
     }
 
-    // Truy vấn YGOPRODeck API theo Passcode đã chuẩn hóa
-    async function resolvePasscodesViaApi(passcodes) {
-      const missing = passcodes.filter(p => !passcodeToNameCache.has(p));
-      if (missing.length === 0) return;
+    async function resolveSingleIdWithDecrement(rawId) {
+      let currentId = Number(rawId);
+      if (apiIdCache.has(currentId)) return apiIdCache.get(currentId);
 
-      const chunkSize = 20;
-      for (let i = 0; i < missing.length; i += chunkSize) {
-        const chunk = missing.slice(i, i + chunkSize);
+      // Thử lùi Passcode (-0, -1, -2, -3)
+      for (let attempt = 0; attempt <= 3; attempt++) {
+        const checkId = currentId - attempt;
+        if (checkId <= 0) break;
+
+        if (apiIdCache.has(checkId)) {
+          const matchedName = apiIdCache.get(checkId);
+          apiIdCache.set(Number(rawId), matchedName);
+          return matchedName;
+        }
+
         try {
-          const res = await fetch(`https://db.ygoprodeck.com/api/v7/cardinfo.php?id=${chunk.join(',')}`);
+          const res = await fetch(`https://db.ygoprodeck.com/api/v7/cardinfo.php?id=${checkId}&misc=yes`);
           if (res.ok) {
             const data = await res.json();
-            if (data && data.data) {
-              data.data.forEach(card => {
-                const canonicalName = card.name;
-                const passcode = normalizeToPasscode(card.id);
-                passcodeToNameCache.set(passcode, canonicalName);
-              });
+            if (data && data.data && data.data[0]) {
+              const matchedName = data.data[0].name;
+              apiIdCache.set(Number(rawId), matchedName);
+              apiIdCache.set(checkId, matchedName);
+              if (data.data[0].card_images) {
+                data.data[0].card_images.forEach(img => {
+                  if (img.id) apiIdCache.set(Number(img.id), matchedName);
+                });
+              }
+              return matchedName;
             }
           }
-        } catch(e) {
-          console.warn("Lỗi gọi API YGOPRODeck:", e);
-        }
+        } catch (e) {}
       }
+
+      return null;
     }
+
+    // --- KIỂM TRA TÍNH HỢP LỆ TOÀN DIỆN CỦA BỘ BÀI (FULL DECK VALIDATOR) ---
 
     async function checkYdkeDeck() {
       const ydkeStr = document.getElementById('ydkeInput').value.trim();
@@ -664,7 +672,7 @@
       }
 
       resultDiv.className = "p-4 rounded-lg border text-xs bg-slate-950 border-slate-800 text-yellow-500";
-      resultDiv.innerHTML = '<i class="fa-solid fa-circle-notch animate-spin mr-2"></i> Đang trích xuất Passcode và đối chiếu Banlist...';
+      resultDiv.innerHTML = '<i class="fa-solid fa-circle-notch animate-spin mr-2"></i> Đang giải mã YDKE, trích xuất Alt Art và kiểm tra tính hợp lệ...';
       resultDiv.classList.remove('hidden');
 
       const content = ydkeStr.replace('ydke://', '');
@@ -682,67 +690,132 @@
         return;
       }
 
-      // 1. Chuyển đổi toàn bộ ID trong YDKE sang Passcode 8 chữ số chuẩn
-      const normalizedPasscodes = allRawIds.map(id => normalizeToPasscode(id));
-      const uniquePasscodes = Array.from(new Set(normalizedPasscodes));
+      // 1. Áp dụng Alt Art Decrement Normalizer
+      const uniqueIds = Array.from(new Set(allRawIds));
+      const unmappedAltArtIds = [];
 
-      // 2. Gửi danh sách Passcode đã được chuẩn hóa lên API YGOPRODeck
-      await resolvePasscodesViaApi(uniquePasscodes);
+      await Promise.all(uniqueIds.map(async id => {
+        const name = await resolveSingleIdWithDecrement(id);
+        if (!name) {
+          unmappedAltArtIds.push(id);
+        }
+      }));
 
-      // 3. Gom số lượng lá bài theo TÊN BÀI CHUẨN
+      // 2. Gom số lượng lá bài theo TÊN BÀI CHUẨN
       const nameCounts = {};
-      normalizedPasscodes.forEach(passcode => {
-        const canonicalName = passcodeToNameCache.get(passcode) || `Unknown Card (Passcode: ${passcode})`;
-        nameCounts[canonicalName] = (nameCounts[canonicalName] || 0) + 1;
+      allRawIds.forEach(id => {
+        const idNum = Number(id);
+        if (apiIdCache.has(idNum)) {
+          const canonicalName = apiIdCache.get(idNum);
+          nameCounts[canonicalName] = (nameCounts[canonicalName] || 0) + 1;
+        }
       });
 
-      // 4. Đối chiếu Banlist theo Tên Bài Chuẩn
+      // 3. Tra cứu Banlist
       const banlistNameMap = new Map();
       combinedBanlist.forEach(card => {
         if (card.name) banlistNameMap.set(card.name.toLowerCase().trim(), card);
       });
 
-      const violations = [];
+      const banlistViolations = [];
+      const overThreeViolations = [];
 
       for (const [cardName, totalCount] of Object.entries(nameCounts)) {
         const banInfo = banlistNameMap.get(cardName.toLowerCase().trim());
 
         let maxAllowed = 3;
-        let statusText = "Unlimited";
+        let statusText = "Unlimited (Tối đa 3 lá)";
 
         if (banInfo) {
           if (banInfo.status === 'Forbidden') maxAllowed = 0;
           else if (banInfo.status === 'Limited') maxAllowed = 1;
           else if (banInfo.status === 'Semi-Limited') maxAllowed = 2;
           statusText = banInfo.status;
-        }
-
-        if (totalCount > maxAllowed) {
-          violations.push({
-            name: cardName,
-            count: totalCount,
-            maxAllowed: maxAllowed,
-            status: statusText
-          });
+          
+          if (totalCount > maxAllowed) {
+            banlistViolations.push({ name: cardName, count: totalCount, maxAllowed, status: statusText });
+          }
+        } else {
+          // Với bài Unlimited, tối đa 3 lá cùng tên chuẩn
+          if (totalCount > 3) {
+            overThreeViolations.push({ name: cardName, count: totalCount });
+          }
         }
       }
 
-      // 5. Hiển thị kết quả
-      if (violations.length === 0) {
-        resultDiv.className = "p-4 rounded-lg border text-xs bg-emerald-950/50 border-emerald-800 text-emerald-300";
+      // 4. KIỂM TRA TIÊU CHUẨN SỐ LƯỢNG LÁ BÀI (DECK SIZE RULES)
+      const deckSizeErrors = [];
+      if (mainIds.length < 40) deckSizeErrors.push(`Main Deck chưa đủ số lượng quy định (Hiện tại: <b>${mainIds.length}</b> lá / Yêu cầu tối thiểu: <b>40</b> lá).`);
+      if (mainIds.length > 60) deckSizeErrors.push(`Main Deck vượt quá số lượng cho phép (Hiện tại: <b>${mainIds.length}</b> lá / Yêu cầu tối đa: <b>60</b> lá).`);
+      if (extraIds.length > 15) deckSizeErrors.push(`Extra Deck vượt quá giới hạn (Hiện tại: <b>${extraIds.length}</b> lá / Yêu cầu tối đa: <b>15</b> lá).`);
+      if (sideIds.length > 15) deckSizeErrors.push(`Side Deck vượt quá giới hạn (Hiện tại: <b>${sideIds.length}</b> lá / Yêu cầu tối đa: <b>15</b> lá).`);
+
+      const isTotallyValid = (
+        deckSizeErrors.length === 0 && 
+        banlistViolations.length === 0 && 
+        overThreeViolations.length === 0 && 
+        unmappedAltArtIds.length === 0
+      );
+
+      // 5. HIỂN THỊ KẾT QUẢ ĐẦY ĐỦ
+      if (isTotallyValid) {
+        resultDiv.className = "p-4 rounded-lg border text-xs bg-emerald-950/50 border-emerald-800 text-emerald-300 space-y-1";
         resultDiv.innerHTML = `
-          <div class="font-bold text-sm mb-1">✅ Bộ bài HỢP LỆ!</div>
-          <p class="text-slate-300">Tổng số lá: <b>${allRawIds.length}</b> (Main: ${mainIds.length} | Extra: ${extraIds.length} | Side: ${sideIds.length}). Tất cả các bản Alt Art tràn viền đã được trích xuất về Passcode gốc và kiểm tra chính xác.</p>
+          <div class="font-bold text-sm mb-1 text-emerald-400 flex items-center gap-2">
+            <i class="fa-solid fa-circle-check text-base"></i> BỘ BÀI HOÀN TOÀN HỢP LỆ THI ĐẤU!
+          </div>
+          <p class="text-slate-300">
+            • Tổng số lá bài: <b>${allRawIds.length}</b> (Main Deck: <b>${mainIds.length}</b> | Extra Deck: <b>${extraIds.length}</b> | Side Deck: <b>${sideIds.length}</b>).<br>
+            • Tất cả lá bài (bao gồm các bản Alt Art tràn viền) đều đạt tiêu chuẩn về số lượng và tuân thủ đúng Banlist hiện tại.
+          </p>
         `;
       } else {
-        resultDiv.className = "p-4 rounded-lg border text-xs bg-red-950/50 border-red-800 text-red-300 space-y-2";
-        let html = `<div class="font-bold text-sm">❌ Bộ bài VI PHẠM Banlist (${violations.length} lá vi phạm):</div><ul class="list-disc pl-5 space-y-1">`;
-        
-        violations.forEach(v => {
-          html += `<li><b>${v.name}</b>: Bạn đang dùng tổng cộng <b>${v.count}</b> lá (Giới hạn trạng thái <i>${v.status}</i>: tối đa <b>${v.maxAllowed}</b> lá).</li>`;
-        });
-        
-        html += `</ul>`;
+        resultDiv.className = "p-4 rounded-lg border text-xs bg-red-950/50 border-red-800 text-red-300 space-y-3";
+        let html = `<div class="font-bold text-sm text-red-400 flex items-center gap-2"><i class="fa-solid fa-triangle-exclamation text-base"></i> BỘ BÀI KHÔNG HỢP LỆ (Phát hiện lỗi bên dưới):</div>`;
+
+        // Lỗi số lượng bộ bài
+        if (deckSizeErrors.length > 0) {
+          html += `<div class="bg-slate-950/60 p-2.5 rounded border border-red-900/40">
+            <div class="font-bold text-red-400 mb-1">1. Lỗi Số Lượng Deck Size:</div>
+            <ul class="list-disc pl-5 space-y-0.5 text-slate-300">`;
+          deckSizeErrors.forEach(err => html += `<li>${err}</li>`);
+          html += `</ul></div>`;
+        }
+
+        // Vi phạm Banlist
+        if (banlistViolations.length > 0) {
+          html += `<div class="bg-slate-950/60 p-2.5 rounded border border-red-900/40">
+            <div class="font-bold text-red-400 mb-1">2. Vi Phạm Banlist Giải Đấu:</div>
+            <ul class="list-disc pl-5 space-y-0.5 text-slate-300">`;
+          banlistViolations.forEach(v => {
+            html += `<li><b>${v.name}</b>: Đang dùng <b>${v.count}</b> lá (Trạng thái <i>${v.status}</i>: Cho phép tối đa <b>${v.maxAllowed}</b> lá).</li>`;
+          });
+          html += `</ul></div>`;
+        }
+
+        // Quá 3 lá cùng tên
+        if (overThreeViolations.length > 0) {
+          html += `<div class="bg-slate-950/60 p-2.5 rounded border border-red-900/40">
+            <div class="font-bold text-red-400 mb-1">3. Vượt Quá 3 Lá Cùng Tên Trong Bộ Bài:</div>
+            <ul class="list-disc pl-5 space-y-0.5 text-slate-300">`;
+          overThreeViolations.forEach(v => {
+            html += `<li><b>${v.name}</b>: Bạn đang dùng tổng cộng <b>${v.count}</b> lá (Luật chung quy định tối đa <b>3</b> lá cùng tên chuẩn).</li>`;
+          });
+          html += `</ul></div>`;
+        }
+
+        // Cảnh báo Alt Art không quy đổi được
+        if (unmappedAltArtIds.length > 0) {
+          html += `<div class="bg-slate-950/60 p-2.5 rounded border border-yellow-800/40 text-yellow-300">
+            <div class="font-bold text-yellow-400 mb-1">4. Cảnh Báo Alt Art Khác CSDL:</div>
+            <p class="mb-1">Phát hiện <b>${unmappedAltArtIds.length}</b> lá Alt Art / Custom ID không thể tự động quy đổi bằng thuật toán:</p>
+            <div class="font-mono text-[11px] bg-slate-950 p-1.5 rounded border border-slate-800 text-yellow-200">
+              Mã ID chưa nhận diện: [ ${unmappedAltArtIds.join(', ')} ]
+            </div>
+            <p class="mt-1 italic">👉 <b>Vui lòng kiểm tra thủ công</b> các lá bài trên trong YGO Deckbuilder của bạn.</p>
+          </div>`;
+        }
+
         resultDiv.innerHTML = html;
       }
     }
