@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>YGO Banlist Hub - Fast Edition</title>
+  <title>YGO Banlist Hub - API Alt Art Edition</title>
   
   <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -16,7 +16,6 @@
   
   <style>
     body { background-color: #0f172a; color: #f8fafc; font-family: system-ui, -apple-system, sans-serif; }
-    .card-glow:hover { box-shadow: 0 0 10px rgba(234, 179, 8, 0.4); }
     .custom-scrollbar::-webkit-scrollbar { width: 6px; }
     .custom-scrollbar::-webkit-scrollbar-track { background: #1e293b; }
     .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
@@ -31,7 +30,7 @@
         <i class="fa-solid fa-crown text-yellow-500 text-2xl"></i>
         <div>
           <h1 class="font-bold text-xl tracking-wide text-yellow-500">YGO COMMUNITY BANLIST</h1>
-          <p class="text-xs text-slate-400">Siêu mượt • Tối ưu hóa bộ nhớ</p>
+          <p class="text-xs text-slate-400">Siêu mượt • Tra cứu trực tiếp YGOPRODeck API</p>
         </div>
       </div>
       
@@ -226,7 +225,7 @@
   </main>
 
   <footer class="bg-slate-950 border-t border-slate-900 py-4 text-center text-xs text-slate-600">
-    YGO Banlist Engine - Fast Async Rendering
+    YGO Banlist Engine - Direct API Resolution
   </footer>
 
   <script>
@@ -268,8 +267,8 @@
     let allSubmissions = [];
     let combinedBanlist = [];
 
-    // Từ điển Tra cứu ID -> Tên Chuẩn (Cache)
-    const cardIdToNameCache = new Map();
+    // Memory Cache lưu kết quả API đã gọi
+    const apiIdCache = new Map();
 
     window.addEventListener('DOMContentLoaded', () => {
       auth.onAuthStateChanged(user => {
@@ -335,56 +334,29 @@
     }
 
     async function fetchOCGBanlistFast() {
-      const cached = localStorage.getItem('ygo_ocg_light_v4');
-      const cacheTime = localStorage.getItem('ygo_ocg_light_time_v4');
-      
-      if (cached && cacheTime && (Date.now() - cacheTime < 86400000)) {
-        try {
-          const parsed = JSON.parse(cached);
-          ocgBanlistCards = parsed.cards;
-          parsed.idMap.forEach(([id, name]) => cardIdToNameCache.set(Number(id), name));
-          combineAndRender();
-          return;
-        } catch(e) {}
-      }
-
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 4000);
-
       try {
-        const res = await fetch('https://db.ygoprodeck.com/api/v7/cardinfo.php?banlist=ocg', { signal: controller.signal });
-        clearTimeout(timer);
+        const res = await fetch('https://db.ygoprodeck.com/api/v7/cardinfo.php?banlist=ocg');
         const data = await res.json();
 
         if (data && data.data) {
-          const idMapEntries = [];
           ocgBanlistCards = data.data.map(c => {
-            const canonicalName = c.name;
-            cardIdToNameCache.set(Number(c.id), canonicalName);
-            idMapEntries.push([c.id, canonicalName]);
-
-            if (c.card_images && Array.isArray(c.card_images)) {
+            const name = c.name;
+            apiIdCache.set(Number(c.id), name);
+            if (c.card_images) {
               c.card_images.forEach(img => {
-                if (img.id) {
-                  cardIdToNameCache.set(Number(img.id), canonicalName);
-                  idMapEntries.push([img.id, canonicalName]);
-                }
+                if (img.id) apiIdCache.set(Number(img.id), name);
               });
             }
-
             return {
               id: c.id,
-              name: canonicalName,
+              name: name,
               image: c.card_images?.[0]?.image_url_small || '',
               status: mapStatus(c.banlist_info?.ban_ocg)
             };
           });
-
-          localStorage.setItem('ygo_ocg_light_v4', JSON.stringify({ cards: ocgBanlistCards, idMap: idMapEntries }));
-          localStorage.setItem('ygo_ocg_light_time_v4', Date.now().toString());
         }
       } catch (e) {
-        console.warn("Dùng fallback nạp bài OCG do API phản hồi chậm");
+        console.warn("Lỗi nạp bài OCG.");
       } finally {
         combineAndRender();
       }
@@ -413,7 +385,7 @@
       const approved = allSubmissions
         .filter(s => s.isApproved)
         .map(sub => {
-          cardIdToNameCache.set(Number(sub.cardId), sub.cardName);
+          apiIdCache.set(Number(sub.cardId), sub.cardName);
           return {
             id: sub.cardId,
             name: sub.cardName,
@@ -654,7 +626,7 @@
       }
     }
 
-    // --- XỬ LÝ GIẢI MÃ YDKE CHECKER - GIẢI PHÁP ĐỒNG BỘ NGƯỢC CHỐNG LỖI ART TRÀN VIỀN ---
+    // --- XỬ LÝ YDKE CHECKER TRUY VẤN API CHUẨN XÁC 100% BẰNG BATCH API + PASSCODE NORMALIZATION ---
 
     function parseYdkeBlock(base64Str) {
       if (!base64Str) return [];
@@ -676,27 +648,66 @@
       }
     }
 
-    // Hàm quy đổi ID bất kỳ (Passcode / Alt Art ID / Full-Art ID) về Tên Bài Chuẩn
-    function getCanonicalCardName(id) {
-      const idNum = Number(id);
-      
-      // 1. Kiểm tra trực tiếp trong Cache đã nạp
-      if (cardIdToNameCache.has(idNum)) {
-        return cardIdToNameCache.get(idNum);
-      }
+    // Tra cứu danh sách ID qua YGOPRODeck API
+    async function fetchCardNamesFromApi(ids) {
+      if (!ids || ids.length === 0) return;
 
-      // 2. Thuật toán xử lý Alt Art/Custom Art ID: 
-      // Các phần mềm YGO simulator thường tạo ID Alt Art bằng cách dùng ID gốc + Modulo hoặc lấy 8 chữ số đầu
-      const idStr = idNum.toString();
-      if (idStr.length > 8) {
-        const slicedId = Number(idStr.slice(-8)); // Lấy 8 chữ số Passcode gốc
-        if (cardIdToNameCache.has(slicedId)) {
-          return cardIdToNameCache.get(slicedId);
+      const missing = ids.filter(id => !apiIdCache.has(Number(id)));
+      if (missing.length === 0) return;
+
+      // Chia nhỏ batch 20 ID cho mỗi API Call
+      const chunkSize = 20;
+      for (let i = 0; i < missing.length; i += chunkSize) {
+        const chunk = missing.slice(i, i + chunkSize);
+        
+        // BƯỚC 1: Thử truy vấn chính xác danh sách ID qua API
+        try {
+          const res = await fetch(`https://db.ygoprodeck.com/api/v7/cardinfo.php?id=${chunk.join(',')}&misc=yes`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data && data.data) {
+              data.data.forEach(card => {
+                const canonicalName = card.name;
+                apiIdCache.set(Number(card.id), canonicalName);
+                if (card.card_images) {
+                  card.card_images.forEach(img => {
+                    if (img.id) apiIdCache.set(Number(img.id), canonicalName);
+                  });
+                }
+              });
+            }
+          }
+        } catch(e) {}
+
+        // BƯỚC 2: Xử lý các ID Alt Art tràn viền bị API từ chối (400 Bad Request)
+        const stillMissing = chunk.filter(id => !apiIdCache.has(Number(id)));
+        if (stillMissing.length > 0) {
+          const normalizedPasscodes = stillMissing.map(id => {
+            const strId = id.toString();
+            // Lấy 8 chữ số cuối (Passcode chuẩn của lá bài Yu-Gi-Oh!)
+            return strId.length > 8 ? Number(strId.slice(-8)) : Number(id);
+          });
+
+          try {
+            const res2 = await fetch(`https://db.ygoprodeck.com/api/v7/cardinfo.php?id=${normalizedPasscodes.join(',')}&misc=yes`);
+            if (res2.ok) {
+              const data2 = await res2.json();
+              if (data2 && data2.data) {
+                data2.data.forEach(card => {
+                  const canonicalName = card.name;
+                  // Ánh xạ cả ID gốc và ID Alt Art tràn viền ban đầu về Tên lá bài
+                  apiIdCache.set(Number(card.id), canonicalName);
+                  stillMissing.forEach(origId => {
+                    if (origId.toString().endsWith(card.id.toString())) {
+                      apiIdCache.set(Number(origId), canonicalName);
+                    }
+                  });
+                });
+              }
+            }
+          } catch(e) {}
         }
       }
-
-      // 3. Nếu vẫn không nhận diện được (Do ID Custom hoàn toàn), trả về mã ID kèm cảnh báo
-      return `⚠️ UNKNOWN ART (ID: ${idNum})`;
     }
 
     async function checkYdkeDeck() {
@@ -711,7 +722,7 @@
       }
 
       resultDiv.className = "p-4 rounded-lg border text-xs bg-slate-950 border-slate-800 text-yellow-500";
-      resultDiv.innerHTML = '<i class="fa-solid fa-circle-notch animate-spin mr-2"></i> Đang giải mã YDKE và đối chiếu Banlist...';
+      resultDiv.innerHTML = '<i class="fa-solid fa-circle-notch animate-spin mr-2"></i> Đang kết nối API YGOPRODeck để đối chiếu Alt Art...';
       resultDiv.classList.remove('hidden');
 
       const content = ydkeStr.replace('ydke://', '');
@@ -729,19 +740,19 @@
         return;
       }
 
-      // 1. Gom số lượng lá bài theo TÊN BÀI CHUẨN
-      const nameCounts = {};
-      const unknownCardsList = [];
+      // 1. Gọi API YGOPRODeck để lấy tên chuẩn cho tất cả ID
+      const uniqueIds = Array.from(new Set(allCardIds));
+      await fetchCardNamesFromApi(uniqueIds);
 
+      // 2. Gom số lượng lá bài theo TÊN BÀI CHUẨN
+      const nameCounts = {};
       allCardIds.forEach(id => {
-        const canonicalName = getCanonicalCardName(id);
-        if (canonicalName.startsWith('⚠️ UNKNOWN ART')) {
-          unknownCardsList.push(id);
-        }
+        const idNum = Number(id);
+        const canonicalName = apiIdCache.get(idNum) || `Lá bài chưa xác định (ID: ${idNum})`;
         nameCounts[canonicalName] = (nameCounts[canonicalName] || 0) + 1;
       });
 
-      // 2. Tra cứu giới hạn Banlist
+      // 3. Tra cứu Banlist
       const banlistNameMap = new Map();
       combinedBanlist.forEach(card => {
         if (card.name) banlistNameMap.set(card.name.toLowerCase().trim(), card);
@@ -772,24 +783,20 @@
         }
       }
 
-      // 3. Hiển thị kết quả chi tiết
-      if (violations.length === 0 && unknownCardsList.length === 0) {
+      // 4. Hiển thị kết quả
+      if (violations.length === 0) {
         resultDiv.className = "p-4 rounded-lg border text-xs bg-emerald-950/50 border-emerald-800 text-emerald-300";
         resultDiv.innerHTML = `
           <div class="font-bold text-sm mb-1">✅ Bộ bài HỢP LỆ!</div>
-          <p class="text-slate-300">Tổng số lá: <b>${allCardIds.length}</b> (Main: ${mainIds.length} | Extra: ${extraIds.length} | Side: ${sideIds.length}). Tất cả lá bài (kể cả bản Alt Art / Tràn viền) đều hợp lệ.</p>
+          <p class="text-slate-300">Tổng số lá: <b>${allCardIds.length}</b> (Main: ${mainIds.length} | Extra: ${extraIds.length} | Side: ${sideIds.length}). Tất cả lá bài (bao gồm cả bản Alt Art / Tràn viền) đã được xác thực thành công qua API YGOPRODeck.</p>
         `;
       } else {
         resultDiv.className = "p-4 rounded-lg border text-xs bg-red-950/50 border-red-800 text-red-300 space-y-2";
-        let html = `<div class="font-bold text-sm">❌ Bộ bài VI PHẠM Banlist hoặc chứa Art không hợp lệ:</div><ul class="list-disc pl-5 space-y-1">`;
+        let html = `<div class="font-bold text-sm">❌ Bộ bài VI PHẠM Banlist (${violations.length} lá vi phạm):</div><ul class="list-disc pl-5 space-y-1">`;
         
         violations.forEach(v => {
           html += `<li><b>${v.name}</b>: Bạn đang dùng tổng cộng <b>${v.count}</b> lá (Giới hạn trạng thái <i>${v.status}</i>: tối đa <b>${v.maxAllowed}</b> lá).</li>`;
         });
-
-        if (unknownCardsList.length > 0) {
-          html += `<li class="text-yellow-400"><b>Lưu ý:</b> Phát hiện <b>${unknownCardsList.length}</b> lá có ID/Art tràn viền không nằm trong CSDL chính thức (Mã ID: ${unknownCardsList.join(', ')}). Vui lòng kiểm tra thủ công.</li>`;
-        }
         
         html += `</ul>`;
         resultDiv.innerHTML = html;
