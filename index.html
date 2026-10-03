@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>YGO Banlist Hub - Full Deck Validator Edition</title>
+  <title>YGO Banlist Hub - Complete Fixed Edition</title>
   
   <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -224,11 +224,18 @@
   </main>
 
   <footer class="bg-slate-950 border-t border-slate-900 py-4 text-center text-xs text-slate-600">
-    YGO Banlist Engine - Complete Deck Validation Standard
+    YGO Banlist Engine - Complete Fixed Edition
   </footer>
 
   <script>
-    const ADMIN_EMAILS = ["trananhchuong112@gmail.com"];
+    function cleanEmail(email) {
+      return email ? email.toString().toLowerCase().trim() : '';
+    }
+
+    const ADMIN_EMAILS = [
+      "trananhchuong112@gmail.com"
+    ].map(cleanEmail);
+
     const ALLOWED_VOTERS = [
       "trananhchuong112@gmail.com",
       "hokhaidien.dt2017@gmail.com",
@@ -251,8 +258,8 @@
       "minhvuhoangnhat@gmail.com",
       "khaiquynhquang@gmail.com",
       "nguyennamst1230@gmail.com",
-      "hao204578@gmail.com",
-    ];
+      "hao204578@gmail.com"
+    ].map(cleanEmail);
 
     const firebaseConfig = {
       apiKey: "AIzaSyA39hLsaOJNAp3PRPb1WmWSA4Y6kPEj14Y",
@@ -273,7 +280,6 @@
     let allSubmissions = [];
     let combinedBanlist = [];
 
-    // Cache lưu ID -> Tên lá bài
     const apiIdCache = new Map();
 
     window.addEventListener('DOMContentLoaded', () => {
@@ -287,8 +293,11 @@
     });
 
     function loginWithGoogle() {
-      auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(e => alert("Lỗi: " + e.message));
+      const provider = new firebase.auth.GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: 'select_account' });
+      auth.signInWithPopup(provider).catch(e => alert("Lỗi đăng nhập: " + e.message));
     }
+
     function logout() { auth.signOut(); }
 
     function updateUserUI() {
@@ -297,20 +306,39 @@
       const btnSubmit = document.getElementById('btnSubmitProposal');
 
       if (currentUser) {
+        const userEmails = new Set();
+        if (currentUser.email) userEmails.add(cleanEmail(currentUser.email));
+        if (currentUser.providerData) {
+          currentUser.providerData.forEach(p => {
+            if (p.email) userEmails.add(cleanEmail(p.email));
+          });
+        }
+
         document.getElementById('btnLogin').classList.add('hidden');
         document.getElementById('userInfo').classList.remove('hidden');
         document.getElementById('userAvatar').src = currentUser.photoURL || '';
         document.getElementById('userName').textContent = currentUser.displayName || currentUser.email;
 
-        const isAdmin = ADMIN_EMAILS.includes(currentUser.email);
-        const isVoter = ALLOWED_VOTERS.includes(currentUser.email);
+        let isAdmin = false;
+        let isVoter = false;
+
+        userEmails.forEach(email => {
+          if (ADMIN_EMAILS.includes(email)) isAdmin = true;
+          if (ALLOWED_VOTERS.includes(email)) isVoter = true;
+        });
 
         if (isAdmin) {
           adminPanel.classList.remove('hidden');
           badge.textContent = "⭐ Admin";
+          badge.className = "text-[9px] text-yellow-500 font-bold bg-yellow-950 px-1.5 py-0.5 rounded border border-yellow-700";
+        } else if (isVoter) {
+          adminPanel.classList.add('hidden');
+          badge.textContent = "✅ Member";
+          badge.className = "text-[9px] text-emerald-400 font-bold bg-emerald-950 px-1.5 py-0.5 rounded border border-emerald-700";
         } else {
           adminPanel.classList.add('hidden');
-          badge.textContent = isVoter ? "✅ Member" : "🔒 Guest";
+          badge.textContent = "🔒 Guest";
+          badge.className = "text-[9px] text-slate-400 font-bold bg-slate-900 px-1.5 py-0.5 rounded border border-slate-700";
         }
 
         if (!isAdmin && !isVoter) {
@@ -505,7 +533,9 @@
     }
 
     async function publishAllSubmissions() {
-      if (!currentUser || !ADMIN_EMAILS.includes(currentUser.email)) return alert("❌ Cần quyền Admin!");
+      if (!currentUser || !currentUser.email) return alert("❌ Vui lòng đăng nhập!");
+      const userEmailNormalized = cleanEmail(currentUser.email);
+      if (!ADMIN_EMAILS.includes(userEmailNormalized)) return alert("❌ Cần quyền Admin!");
       if (allSubmissions.length === 0) return alert("Chưa có bài nào!");
 
       const batch = db.batch();
@@ -518,7 +548,9 @@
     }
 
     async function deleteSubmission(docId) {
-      if (!currentUser || !ADMIN_EMAILS.includes(currentUser.email)) return;
+      if (!currentUser || !currentUser.email) return;
+      const userEmailNormalized = cleanEmail(currentUser.email);
+      if (!ADMIN_EMAILS.includes(userEmailNormalized)) return;
       if (confirm("Xóa lá này?")) await db.collection('submissions').doc(docId).delete();
     }
 
@@ -559,15 +591,17 @@
     }
 
     async function submitProposal() {
-      if (!currentUser) return alert("❌ Vui lòng đăng nhập để thực hiện!");
+      if (!currentUser || !currentUser.email) return alert("❌ Vui lòng đăng nhập để thực hiện!");
 
-      const isAllowed = ADMIN_EMAILS.includes(currentUser.email) || ALLOWED_VOTERS.includes(currentUser.email);
+      const userEmailNormalized = cleanEmail(currentUser.email);
+      const isAllowed = ADMIN_EMAILS.includes(userEmailNormalized) || ALLOWED_VOTERS.includes(userEmailNormalized);
       if (!isAllowed) return alert("🔒 Tài khoản của bạn không thuộc danh sách được phép nộp / cấm lá bài!");
       if (!selectedCard) return alert("⚠️ Vui lòng tìm và chọn lá bài trước!");
 
       try {
         await db.collection('submissions').doc(currentUser.uid + '_' + selectedCard.id).set({
           uid: currentUser.uid,
+          userEmail: userEmailNormalized,
           userName: currentUser.displayName || currentUser.email,
           cardId: selectedCard.id,
           cardName: selectedCard.name,
@@ -631,7 +665,6 @@
       let currentId = Number(rawId);
       if (apiIdCache.has(currentId)) return apiIdCache.get(currentId);
 
-      // Thử lùi Passcode (-0, -1, -2, -3)
       for (let attempt = 0; attempt <= 3; attempt++) {
         const checkId = currentId - attempt;
         if (checkId <= 0) break;
@@ -696,7 +729,6 @@
         return;
       }
 
-      // 1. Áp dụng Alt Art Decrement Normalizer
       const uniqueIds = Array.from(new Set(allRawIds));
       const unmappedAltArtIds = [];
 
@@ -707,7 +739,6 @@
         }
       }));
 
-      // 2. Gom số lượng lá bài theo TÊN BÀI CHUẨN
       const nameCounts = {};
       allRawIds.forEach(id => {
         const idNum = Number(id);
@@ -717,7 +748,6 @@
         }
       });
 
-      // 3. Tra cứu Banlist
       const banlistNameMap = new Map();
       combinedBanlist.forEach(card => {
         if (card.name) banlistNameMap.set(card.name.toLowerCase().trim(), card);
@@ -742,14 +772,12 @@
             banlistViolations.push({ name: cardName, count: totalCount, maxAllowed, status: statusText });
           }
         } else {
-          // Với bài Unlimited, tối đa 3 lá cùng tên chuẩn
           if (totalCount > 3) {
             overThreeViolations.push({ name: cardName, count: totalCount });
           }
         }
       }
 
-      // 4. KIỂM TRA TIÊU CHUẨN SỐ LƯỢNG LÁ BÀI (DECK SIZE RULES)
       const deckSizeErrors = [];
       if (mainIds.length < 40) deckSizeErrors.push(`Main Deck chưa đủ số lượng quy định (Hiện tại: <b>${mainIds.length}</b> lá / Yêu cầu tối thiểu: <b>40</b> lá).`);
       if (mainIds.length > 60) deckSizeErrors.push(`Main Deck vượt quá số lượng cho phép (Hiện tại: <b>${mainIds.length}</b> lá / Yêu cầu tối đa: <b>60</b> lá).`);
@@ -763,7 +791,6 @@
         unmappedAltArtIds.length === 0
       );
 
-      // 5. HIỂN THỊ KẾT QUẢ ĐẦY ĐỦ
       if (isTotallyValid) {
         resultDiv.className = "p-4 rounded-lg border text-xs bg-emerald-950/50 border-emerald-800 text-emerald-300 space-y-1";
         resultDiv.innerHTML = `
@@ -779,7 +806,6 @@
         resultDiv.className = "p-4 rounded-lg border text-xs bg-red-950/50 border-red-800 text-red-300 space-y-3";
         let html = `<div class="font-bold text-sm text-red-400 flex items-center gap-2"><i class="fa-solid fa-triangle-exclamation text-base"></i> BỘ BÀI KHÔNG HỢP LỆ (Phát hiện lỗi bên dưới):</div>`;
 
-        // Lỗi số lượng bộ bài
         if (deckSizeErrors.length > 0) {
           html += `<div class="bg-slate-950/60 p-2.5 rounded border border-red-900/40">
             <div class="font-bold text-red-400 mb-1">1. Lỗi Số Lượng Deck Size:</div>
@@ -788,7 +814,6 @@
           html += `</ul></div>`;
         }
 
-        // Vi phạm Banlist
         if (banlistViolations.length > 0) {
           html += `<div class="bg-slate-950/60 p-2.5 rounded border border-red-900/40">
             <div class="font-bold text-red-400 mb-1">2. Vi Phạm Banlist Giải Đấu:</div>
@@ -799,7 +824,6 @@
           html += `</ul></div>`;
         }
 
-        // Quá 3 lá cùng tên
         if (overThreeViolations.length > 0) {
           html += `<div class="bg-slate-950/60 p-2.5 rounded border border-red-900/40">
             <div class="font-bold text-red-400 mb-1">3. Vượt Quá 3 Lá Cùng Tên Trong Bộ Bài:</div>
@@ -810,7 +834,6 @@
           html += `</ul></div>`;
         }
 
-        // Cảnh báo Alt Art không quy đổi được
         if (unmappedAltArtIds.length > 0) {
           html += `<div class="bg-slate-950/60 p-2.5 rounded border border-yellow-800/40 text-yellow-300">
             <div class="font-bold text-yellow-400 mb-1">4. Cảnh Báo Alt Art Khác CSDL:</div>
