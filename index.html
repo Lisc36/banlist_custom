@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>YGO Banlist Hub - Complete Fixed Edition</title>
+  <title>YGO Banlist Hub - Custom Cards Categorized Edition</title>
   
   <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -30,7 +30,7 @@
         <i class="fa-solid fa-crown text-yellow-500 text-2xl"></i>
         <div>
           <h1 class="font-bold text-xl tracking-wide text-yellow-500">YGO COMMUNITY BANLIST</h1>
-          <p class="text-xs text-slate-400">Kiểm tra tính hợp lệ Bộ bài & Banlist toàn diện</p>
+          <p class="text-xs text-slate-400">Phân loại Monster / Spell / Trap & Ghim lá bài mới</p>
         </div>
       </div>
       
@@ -171,7 +171,7 @@
           <h3 class="font-bold text-lg text-yellow-500 flex items-center gap-2">
             <i class="fa-solid fa-list-check"></i> BANLIST DÀNH CHO GIẢI ĐẤU
           </h3>
-          <p class="text-xs text-slate-400">Các lá do Bài Thủ nộp thành công sẽ được ghim lên đầu</p>
+          <p class="text-xs text-slate-400">Các lá bài do Bài Thủ nộp mới sẽ có nhãn MỚI và nằm ở đầu mỗi nhóm Monster/Spell/Trap</p>
         </div>
         
         <div class="flex items-center gap-2 w-full sm:w-auto">
@@ -190,33 +190,78 @@
       </div>
 
       <!-- FORBIDDEN -->
-      <div class="bg-slate-900 border border-red-500/30 rounded-xl p-5 space-y-4">
+      <div class="bg-slate-900 border border-red-500/30 rounded-xl p-5 space-y-5">
         <div class="flex items-center gap-3 border-b border-red-500/20 pb-3">
           <span class="w-5 h-5 rounded-full bg-red-600 flex items-center justify-center text-xs font-bold">0</span>
           <h3 class="font-bold text-base text-red-400 uppercase">🚫 FORBIDDEN (Cấm 0 lá)</h3>
           <span id="forbiddenCount" class="ml-auto text-xs bg-red-950 text-red-400 border border-red-800 px-2 py-0.5 rounded-full font-bold">0</span>
         </div>
-        <div id="forbiddenGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3"></div>
+        
+        <!-- Monster Sub-Section -->
+        <div class="space-y-2">
+          <h4 class="text-xs font-bold text-slate-400 flex items-center gap-1.5 uppercase tracking-wider"><i class="fa-solid fa-dragon text-amber-500"></i> Monsters</h4>
+          <div id="forbiddenGrid-Monster" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3"></div>
+        </div>
+        <!-- Spell Sub-Section -->
+        <div class="space-y-2">
+          <h4 class="text-xs font-bold text-slate-400 flex items-center gap-1.5 uppercase tracking-wider"><i class="fa-solid fa-wand-magic-sparkles text-emerald-400"></i> Spells</h4>
+          <div id="forbiddenGrid-Spell" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3"></div>
+        </div>
+        <!-- Trap Sub-Section -->
+        <div class="space-y-2">
+          <h4 class="text-xs font-bold text-slate-400 flex items-center gap-1.5 uppercase tracking-wider"><i class="fa-solid fa-shield-halved text-pink-500"></i> Traps</h4>
+          <div id="forbiddenGrid-Trap" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3"></div>
+        </div>
       </div>
 
       <!-- LIMITED -->
-      <div class="bg-slate-900 border border-orange-500/30 rounded-xl p-5 space-y-4">
+      <div class="bg-slate-900 border border-orange-500/30 rounded-xl p-5 space-y-5">
         <div class="flex items-center gap-3 border-b border-orange-500/20 pb-3">
           <span class="w-5 h-5 rounded-full bg-orange-500 flex items-center justify-center text-xs font-bold text-slate-950">1</span>
           <h3 class="font-bold text-base text-orange-400 uppercase">⚠️ LIMITED (Tối đa 1 lá)</h3>
           <span id="limitedCount" class="ml-auto text-xs bg-orange-950 text-orange-400 border border-orange-800 px-2 py-0.5 rounded-full font-bold">0</span>
         </div>
-        <div id="limitedGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3"></div>
+        
+        <!-- Monster Sub-Section -->
+        <div class="space-y-2">
+          <h4 class="text-xs font-bold text-slate-400 flex items-center gap-1.5 uppercase tracking-wider"><i class="fa-solid fa-dragon text-amber-500"></i> Monsters</h4>
+          <div id="limitedGrid-Monster" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3"></div>
+        </div>
+        <!-- Spell Sub-Section -->
+        <div class="space-y-2">
+          <h4 class="text-xs font-bold text-slate-400 flex items-center gap-1.5 uppercase tracking-wider"><i class="fa-solid fa-wand-magic-sparkles text-emerald-400"></i> Spells</h4>
+          <div id="limitedGrid-Spell" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3"></div>
+        </div>
+        <!-- Trap Sub-Section -->
+        <div class="space-y-2">
+          <h4 class="text-xs font-bold text-slate-400 flex items-center gap-1.5 uppercase tracking-wider"><i class="fa-solid fa-shield-halved text-pink-500"></i> Traps</h4>
+          <div id="limitedGrid-Trap" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3"></div>
+        </div>
       </div>
 
       <!-- SEMI-LIMITED -->
-      <div class="bg-slate-900 border border-yellow-500/30 rounded-xl p-5 space-y-4">
+      <div class="bg-slate-900 border border-yellow-500/30 rounded-xl p-5 space-y-5">
         <div class="flex items-center gap-3 border-b border-yellow-500/20 pb-3">
           <span class="w-5 h-5 rounded-full bg-yellow-500 flex items-center justify-center text-xs font-bold text-slate-950">2</span>
           <h3 class="font-bold text-base text-yellow-400 uppercase">🟡 SEMI-LIMITED (Tối đa 2 lá)</h3>
           <span id="semiLimitedCount" class="ml-auto text-xs bg-yellow-950 text-yellow-400 border border-yellow-800 px-2 py-0.5 rounded-full font-bold">0</span>
         </div>
-        <div id="semiLimitedGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3"></div>
+        
+        <!-- Monster Sub-Section -->
+        <div class="space-y-2">
+          <h4 class="text-xs font-bold text-slate-400 flex items-center gap-1.5 uppercase tracking-wider"><i class="fa-solid fa-dragon text-amber-500"></i> Monsters</h4>
+          <div id="semiLimitedGrid-Monster" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3"></div>
+        </div>
+        <!-- Spell Sub-Section -->
+        <div class="space-y-2">
+          <h4 class="text-xs font-bold text-slate-400 flex items-center gap-1.5 uppercase tracking-wider"><i class="fa-solid fa-wand-magic-sparkles text-emerald-400"></i> Spells</h4>
+          <div id="semiLimitedGrid-Spell" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3"></div>
+        </div>
+        <!-- Trap Sub-Section -->
+        <div class="space-y-2">
+          <h4 class="text-xs font-bold text-slate-400 flex items-center gap-1.5 uppercase tracking-wider"><i class="fa-solid fa-shield-halved text-pink-500"></i> Traps</h4>
+          <div id="semiLimitedGrid-Trap" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3"></div>
+        </div>
       </div>
 
     </section>
@@ -224,7 +269,7 @@
   </main>
 
   <footer class="bg-slate-950 border-t border-slate-900 py-4 text-center text-xs text-slate-600">
-    YGO Banlist Engine - Complete Fixed Edition
+    YGO Banlist Engine - Monster/Spell/Trap Category & New Badge Display
   </footer>
 
   <script>
@@ -367,6 +412,15 @@
       }
     }
 
+    // Hàm nhận diện Loại lá bài (Monster, Spell, Trap)
+    function detectCardType(typeStr) {
+      if (!typeStr) return 'Monster';
+      const t = typeStr.toLowerCase();
+      if (t.includes('spell')) return 'Spell';
+      if (t.includes('trap')) return 'Trap';
+      return 'Monster';
+    }
+
     async function fetchOCGBanlistFast() {
       try {
         const res = await fetch('https://db.ygoprodeck.com/api/v7/cardinfo.php?banlist=ocg');
@@ -384,6 +438,7 @@
             return {
               id: c.id,
               name: name,
+              type: detectCardType(c.type),
               image: c.card_images?.[0]?.image_url_small || '',
               status: mapStatus(c.banlist_info?.ban_ocg)
             };
@@ -423,6 +478,7 @@
           return {
             id: sub.cardId,
             name: sub.cardName,
+            type: detectCardType(sub.cardType || 'Monster'),
             image: sub.cardImage,
             status: sub.status,
             source: sub.userName,
@@ -434,6 +490,7 @@
       const userCardNames = new Set(approved.map(c => c.name.toLowerCase()));
       const filteredOCG = ocgBanlistCards.filter(c => !userCardNames.has(c.name.toLowerCase()));
 
+      // Ưu tiên các lá do bài thủ nộp (isUserAdded = true) lên trước
       combinedBanlist = [...approved, ...filteredOCG];
       renderGridBatch(combinedBanlist);
     }
@@ -447,17 +504,29 @@
       document.getElementById('limitedCount').textContent = limited.length;
       document.getElementById('semiLimitedCount').textContent = semi.length;
 
-      fillGrid('forbiddenGrid', forbidden);
-      fillGrid('limitedGrid', limited);
-      fillGrid('semiLimitedGrid', semi);
+      // Render theo 3 nhóm Monster, Spell, Trap
+      renderCategorizedGrids('forbiddenGrid', forbidden);
+      renderCategorizedGrids('limitedGrid', limited);
+      renderCategorizedGrids('semiLimitedGrid', semi);
+    }
+
+    function renderCategorizedGrids(prefixId, cards) {
+      const monsters = cards.filter(c => c.type === 'Monster');
+      const spells = cards.filter(c => c.type === 'Spell');
+      const traps = cards.filter(c => c.type === 'Trap');
+
+      fillGrid(`${prefixId}-Monster`, monsters);
+      fillGrid(`${prefixId}-Spell`, spells);
+      fillGrid(`${prefixId}-Trap`, traps);
     }
 
     function fillGrid(gridId, cards) {
       const grid = document.getElementById(gridId);
+      if (!grid) return;
       grid.innerHTML = '';
 
       if (!cards || cards.length === 0) {
-        grid.innerHTML = '<div class="col-span-full text-center py-2 text-slate-600 text-xs">Không có lá bài</div>';
+        grid.innerHTML = '<div class="col-span-full py-2 text-slate-600 text-[11px] italic">Không có lá bài</div>';
         return;
       }
 
@@ -466,14 +535,14 @@
 
       initialCards.forEach(card => {
         const div = document.createElement('div');
-        div.className = `bg-slate-950 border ${card.isUserAdded ? 'border-yellow-500' : 'border-slate-800'} rounded p-1.5 text-center relative flex flex-col items-center`;
+        div.className = `bg-slate-950 border ${card.isUserAdded ? 'border-yellow-500 shadow-md shadow-yellow-500/10' : 'border-slate-800'} rounded p-1.5 text-center relative flex flex-col items-center`;
         div.innerHTML = `
-          ${card.isUserAdded ? '<span class="absolute top-1 left-1 bg-yellow-500 text-slate-950 text-[8px] font-bold px-1 rounded z-10">MỚI</span>' : ''}
+          ${card.isUserAdded ? '<span class="absolute top-1 left-1 bg-yellow-500 text-slate-950 text-[8px] font-extrabold px-1 rounded z-10 shadow">MỚI</span>' : ''}
           <div class="w-full aspect-[2/3] bg-slate-900 rounded overflow-hidden mb-1">
             <img src="${card.image}" loading="lazy" class="w-full h-full object-cover">
           </div>
-          <h4 class="font-bold text-[11px] text-slate-200 line-clamp-1 w-full">${card.name}</h4>
-          ${card.reason ? `<p class="text-[9px] text-yellow-500/80 truncate w-full italic">${card.reason}</p>` : ''}
+          <h4 class="font-bold text-[11px] text-slate-200 line-clamp-1 w-full" title="${card.name}">${card.name}</h4>
+          ${card.reason ? `<p class="text-[9px] text-yellow-500/80 truncate w-full italic" title="${card.reason}">${card.reason}</p>` : ''}
         `;
         frag.appendChild(div);
       });
@@ -485,13 +554,13 @@
           const restFrag = document.createDocumentFragment();
           cards.slice(40).forEach(card => {
             const div = document.createElement('div');
-            div.className = `bg-slate-950 border ${card.isUserAdded ? 'border-yellow-500' : 'border-slate-800'} rounded p-1.5 text-center relative flex flex-col items-center`;
+            div.className = `bg-slate-950 border ${card.isUserAdded ? 'border-yellow-500 shadow-md shadow-yellow-500/10' : 'border-slate-800'} rounded p-1.5 text-center relative flex flex-col items-center`;
             div.innerHTML = `
-              ${card.isUserAdded ? '<span class="absolute top-1 left-1 bg-yellow-500 text-slate-950 text-[8px] font-bold px-1 rounded z-10">MỚI</span>' : ''}
+              ${card.isUserAdded ? '<span class="absolute top-1 left-1 bg-yellow-500 text-slate-950 text-[8px] font-extrabold px-1 rounded z-10 shadow">MỚI</span>' : ''}
               <div class="w-full aspect-[2/3] bg-slate-900 rounded overflow-hidden mb-1">
                 <img src="${card.image}" loading="lazy" class="w-full h-full object-cover">
               </div>
-              <h4 class="font-bold text-[11px] text-slate-200 line-clamp-1 w-full">${card.name}</h4>
+              <h4 class="font-bold text-[11px] text-slate-200 line-clamp-1 w-full" title="${card.name}">${card.name}</h4>
             `;
             restFrag.appendChild(div);
           });
@@ -571,7 +640,10 @@
               div.className = 'p-2 hover:bg-slate-800 cursor-pointer flex items-center gap-2 border-b border-slate-800/50 text-xs';
               div.innerHTML = `
                 <img src="${card.card_images[0]?.image_url_small}" class="w-7 h-10 object-cover rounded">
-                <div class="font-bold text-slate-200">${card.name}</div>
+                <div>
+                  <div class="font-bold text-slate-200">${card.name}</div>
+                  <div class="text-[10px] text-slate-500">${card.type}</div>
+                </div>
               `;
               div.onclick = () => selectCard(card);
               dropdown.appendChild(div);
@@ -605,6 +677,7 @@
           userName: currentUser.displayName || currentUser.email,
           cardId: selectedCard.id,
           cardName: selectedCard.name,
+          cardType: selectedCard.type, // Lưu thông tin loại lá bài
           cardImage: selectedCard.card_images[0]?.image_url_small,
           status: document.getElementById('banStatus').value,
           reason: document.getElementById('banReason').value || "",
@@ -623,6 +696,7 @@
 
       const exportData = combinedBanlist.map(card => ({
         name: card.name,
+        type: card.type,
         status: card.status,
         reason: card.reason || "",
         addedBy: card.source || "OCG Official"
