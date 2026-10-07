@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>YGO Banlist Hub - Custom Banlist Section Edition</title>
+  <title>YGO Banlist Hub - Fully Categorized Custom & Official Edition</title>
   
   <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -30,7 +30,7 @@
         <i class="fa-solid fa-crown text-yellow-500 text-2xl"></i>
         <div>
           <h1 class="font-bold text-xl tracking-wide text-yellow-500">YGO COMMUNITY BANLIST</h1>
-          <p class="text-xs text-slate-400">Banlist Custom Bài Thủ Nộp & Kiểm tra YDKE toàn diện</p>
+          <p class="text-xs text-slate-400">Phân loại Monster / Spell / Trap toàn bộ Custom & OCG Banlist</p>
         </div>
       </div>
       
@@ -171,7 +171,7 @@
           <h3 class="font-bold text-lg text-yellow-500 flex items-center gap-2">
             <i class="fa-solid fa-list-check"></i> BANLIST DÀNH CHO GIẢI ĐẤU
           </h3>
-          <p class="text-xs text-slate-400">Bao gồm Banlist Custom do Bài Thủ nộp và CSDL OCG Chuẩn</p>
+          <p class="text-xs text-slate-400">Tất cả các phần Banlist đều được phân loại chi tiết Monster / Spell / Trap</p>
         </div>
         
         <div class="flex items-center gap-2 w-full sm:w-auto">
@@ -190,14 +190,14 @@
       </div>
 
       <!-- ==================== SECTION 1: CUSTOM BANLIST (BÀI THỦ NỘP) ==================== -->
-      <div class="space-y-4 bg-slate-900/60 p-5 rounded-2xl border border-yellow-500/30">
+      <div class="space-y-5 bg-slate-900/60 p-5 rounded-2xl border border-yellow-500/30 shadow-2xl">
         <div class="flex items-center gap-2 border-b border-yellow-500/30 pb-3">
           <i class="fa-solid fa-star text-yellow-400 text-xl"></i>
           <h2 class="font-bold text-lg text-yellow-400 uppercase tracking-wide">⭐ BANLIST CUSTOM (BÀI THỦ NỘP)</h2>
           <span id="customTotalCount" class="ml-auto text-xs bg-yellow-950 text-yellow-400 border border-yellow-800 px-2.5 py-1 rounded-full font-bold">0 lá</span>
         </div>
 
-        <div id="customEmptyMsg" class="hidden text-center py-6 text-slate-500 text-xs italic">Chưa có lá bài Custom nào được duyệt.</div>
+        <div id="customEmptyMsg" class="hidden text-center py-6 text-slate-500 text-xs italic">Chưa có lá bài Custom nào được công bố.</div>
 
         <!-- Custom Forbidden -->
         <div class="bg-slate-950/80 border border-red-500/30 rounded-xl p-4 space-y-4">
@@ -207,15 +207,15 @@
           </div>
           <div class="space-y-3">
             <div>
-              <span class="text-[11px] font-semibold text-amber-500 flex items-center gap-1 mb-1"><i class="fa-solid fa-dragon"></i> Monsters</span>
+              <span class="text-[11px] font-semibold text-amber-500 flex items-center gap-1 mb-1.5"><i class="fa-solid fa-dragon"></i> Monsters</span>
               <div id="custom-Forbidden-Monster" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3"></div>
             </div>
             <div>
-              <span class="text-[11px] font-semibold text-emerald-400 flex items-center gap-1 mb-1"><i class="fa-solid fa-wand-magic-sparkles"></i> Spells</span>
+              <span class="text-[11px] font-semibold text-emerald-400 flex items-center gap-1 mb-1.5"><i class="fa-solid fa-wand-magic-sparkles"></i> Spells</span>
               <div id="custom-Forbidden-Spell" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3"></div>
             </div>
             <div>
-              <span class="text-[11px] font-semibold text-pink-500 flex items-center gap-1 mb-1"><i class="fa-solid fa-shield-halved"></i> Traps</span>
+              <span class="text-[11px] font-semibold text-pink-500 flex items-center gap-1 mb-1.5"><i class="fa-solid fa-shield-halved"></i> Traps</span>
               <div id="custom-Forbidden-Trap" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3"></div>
             </div>
           </div>
@@ -229,15 +229,15 @@
           </div>
           <div class="space-y-3">
             <div>
-              <span class="text-[11px] font-semibold text-amber-500 flex items-center gap-1 mb-1"><i class="fa-solid fa-dragon"></i> Monsters</span>
+              <span class="text-[11px] font-semibold text-amber-500 flex items-center gap-1 mb-1.5"><i class="fa-solid fa-dragon"></i> Monsters</span>
               <div id="custom-Limited-Monster" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3"></div>
             </div>
             <div>
-              <span class="text-[11px] font-semibold text-emerald-400 flex items-center gap-1 mb-1"><i class="fa-solid fa-wand-magic-sparkles"></i> Spells</span>
+              <span class="text-[11px] font-semibold text-emerald-400 flex items-center gap-1 mb-1.5"><i class="fa-solid fa-wand-magic-sparkles"></i> Spells</span>
               <div id="custom-Limited-Spell" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3"></div>
             </div>
             <div>
-              <span class="text-[11px] font-semibold text-pink-500 flex items-center gap-1 mb-1"><i class="fa-solid fa-shield-halved"></i> Traps</span>
+              <span class="text-[11px] font-semibold text-pink-500 flex items-center gap-1 mb-1.5"><i class="fa-solid fa-shield-halved"></i> Traps</span>
               <div id="custom-Limited-Trap" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3"></div>
             </div>
           </div>
@@ -251,15 +251,15 @@
           </div>
           <div class="space-y-3">
             <div>
-              <span class="text-[11px] font-semibold text-amber-500 flex items-center gap-1 mb-1"><i class="fa-solid fa-dragon"></i> Monsters</span>
+              <span class="text-[11px] font-semibold text-amber-500 flex items-center gap-1 mb-1.5"><i class="fa-solid fa-dragon"></i> Monsters</span>
               <div id="custom-Semi-Limited-Monster" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3"></div>
             </div>
             <div>
-              <span class="text-[11px] font-semibold text-emerald-400 flex items-center gap-1 mb-1"><i class="fa-solid fa-wand-magic-sparkles"></i> Spells</span>
+              <span class="text-[11px] font-semibold text-emerald-400 flex items-center gap-1 mb-1.5"><i class="fa-solid fa-wand-magic-sparkles"></i> Spells</span>
               <div id="custom-Semi-Limited-Spell" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3"></div>
             </div>
             <div>
-              <span class="text-[11px] font-semibold text-pink-500 flex items-center gap-1 mb-1"><i class="fa-solid fa-shield-halved"></i> Traps</span>
+              <span class="text-[11px] font-semibold text-pink-500 flex items-center gap-1 mb-1.5"><i class="fa-solid fa-shield-halved"></i> Traps</span>
               <div id="custom-Semi-Limited-Trap" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3"></div>
             </div>
           </div>
@@ -283,15 +283,15 @@
           </div>
           <div class="space-y-3">
             <div>
-              <h4 class="text-xs font-bold text-slate-400 flex items-center gap-1.5 uppercase mb-1"><i class="fa-solid fa-dragon text-amber-500"></i> Monsters</h4>
+              <h4 class="text-xs font-bold text-slate-400 flex items-center gap-1.5 uppercase mb-1.5"><i class="fa-solid fa-dragon text-amber-500"></i> Monsters</h4>
               <div id="ocg-Forbidden-Monster" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3"></div>
             </div>
             <div>
-              <h4 class="text-xs font-bold text-slate-400 flex items-center gap-1.5 uppercase mb-1"><i class="fa-solid fa-wand-magic-sparkles text-emerald-400"></i> Spells</h4>
+              <h4 class="text-xs font-bold text-slate-400 flex items-center gap-1.5 uppercase mb-1.5"><i class="fa-solid fa-wand-magic-sparkles text-emerald-400"></i> Spells</h4>
               <div id="ocg-Forbidden-Spell" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3"></div>
             </div>
             <div>
-              <h4 class="text-xs font-bold text-slate-400 flex items-center gap-1.5 uppercase mb-1"><i class="fa-solid fa-shield-halved text-pink-500"></i> Traps</h4>
+              <h4 class="text-xs font-bold text-slate-400 flex items-center gap-1.5 uppercase mb-1.5"><i class="fa-solid fa-shield-halved text-pink-500"></i> Traps</h4>
               <div id="ocg-Forbidden-Trap" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3"></div>
             </div>
           </div>
@@ -306,15 +306,15 @@
           </div>
           <div class="space-y-3">
             <div>
-              <h4 class="text-xs font-bold text-slate-400 flex items-center gap-1.5 uppercase mb-1"><i class="fa-solid fa-dragon text-amber-500"></i> Monsters</h4>
+              <h4 class="text-xs font-bold text-slate-400 flex items-center gap-1.5 uppercase mb-1.5"><i class="fa-solid fa-dragon text-amber-500"></i> Monsters</h4>
               <div id="ocg-Limited-Monster" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3"></div>
             </div>
             <div>
-              <h4 class="text-xs font-bold text-slate-400 flex items-center gap-1.5 uppercase mb-1"><i class="fa-solid fa-wand-magic-sparkles text-emerald-400"></i> Spells</h4>
+              <h4 class="text-xs font-bold text-slate-400 flex items-center gap-1.5 uppercase mb-1.5"><i class="fa-solid fa-wand-magic-sparkles text-emerald-400"></i> Spells</h4>
               <div id="ocg-Limited-Spell" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3"></div>
             </div>
             <div>
-              <h4 class="text-xs font-bold text-slate-400 flex items-center gap-1.5 uppercase mb-1"><i class="fa-solid fa-shield-halved text-pink-500"></i> Traps</h4>
+              <h4 class="text-xs font-bold text-slate-400 flex items-center gap-1.5 uppercase mb-1.5"><i class="fa-solid fa-shield-halved text-pink-500"></i> Traps</h4>
               <div id="ocg-Limited-Trap" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3"></div>
             </div>
           </div>
@@ -329,15 +329,15 @@
           </div>
           <div class="space-y-3">
             <div>
-              <h4 class="text-xs font-bold text-slate-400 flex items-center gap-1.5 uppercase mb-1"><i class="fa-solid fa-dragon text-amber-500"></i> Monsters</h4>
+              <h4 class="text-xs font-bold text-slate-400 flex items-center gap-1.5 uppercase mb-1.5"><i class="fa-solid fa-dragon text-amber-500"></i> Monsters</h4>
               <div id="ocg-Semi-Limited-Monster" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3"></div>
             </div>
             <div>
-              <h4 class="text-xs font-bold text-slate-400 flex items-center gap-1.5 uppercase mb-1"><i class="fa-solid fa-wand-magic-sparkles text-emerald-400"></i> Spells</h4>
+              <h4 class="text-xs font-bold text-slate-400 flex items-center gap-1.5 uppercase mb-1.5"><i class="fa-solid fa-wand-magic-sparkles text-emerald-400"></i> Spells</h4>
               <div id="ocg-Semi-Limited-Spell" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3"></div>
             </div>
             <div>
-              <h4 class="text-xs font-bold text-slate-400 flex items-center gap-1.5 uppercase mb-1"><i class="fa-solid fa-shield-halved text-pink-500"></i> Traps</h4>
+              <h4 class="text-xs font-bold text-slate-400 flex items-center gap-1.5 uppercase mb-1.5"><i class="fa-solid fa-shield-halved text-pink-500"></i> Traps</h4>
               <div id="ocg-Semi-Limited-Trap" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3"></div>
             </div>
           </div>
@@ -349,7 +349,7 @@
   </main>
 
   <footer class="bg-slate-950 border-t border-slate-900 py-4 text-center text-xs text-slate-600">
-    YGO Banlist Engine - Custom Banlist Separated Edition
+    YGO Banlist Engine - Fully Categorized Custom & Official Edition
   </footer>
 
   <script>
@@ -492,6 +492,7 @@
       }
     }
 
+    // Hàm nhận diện Loại lá bài (Monster, Spell, Trap) chuẩn xác
     function detectCardType(typeStr) {
       if (!typeStr) return 'Monster';
       const t = typeStr.toLowerCase();
@@ -579,13 +580,11 @@
 
       combinedBanlist = [...customCards, ...filteredOCG];
 
-      // 1. Render nhóm CUSTOM BANLIST
+      // Render cả 2 nhóm CUSTOM và OCG OFFICIAL theo Monster, Spell, Trap
       renderBanlistGroup('custom', customCards);
-
-      // 2. Render nhóm OFFICIAL OCG BANLIST
       renderBanlistGroup('ocg', filteredOCG);
 
-      // Đếm tổng số OCG
+      // Cập nhật số lượng OCG
       document.getElementById('forbiddenCount').textContent = filteredOCG.filter(c => c.status === 'Forbidden').length;
       document.getElementById('limitedCount').textContent = filteredOCG.filter(c => c.status === 'Limited').length;
       document.getElementById('semiLimitedCount').textContent = filteredOCG.filter(c => c.status === 'Semi-Limited').length;
