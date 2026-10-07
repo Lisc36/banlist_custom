@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>YGO Banlist Hub - Fully Categorized Custom & Official Edition</title>
+  <title>YGO Banlist Hub - Strict Categorization Fixed Edition</title>
   
   <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -349,7 +349,7 @@
   </main>
 
   <footer class="bg-slate-950 border-t border-slate-900 py-4 text-center text-xs text-slate-600">
-    YGO Banlist Engine - Fully Categorized Custom & Official Edition
+    YGO Banlist Engine - Strict Categorization Fixed Edition
   </footer>
 
   <script>
@@ -405,7 +405,9 @@
     let allSubmissions = [];
     let combinedBanlist = [];
 
+    // Cache thông tin chi tiết của lá bài (ID/Name -> Object)
     const apiIdCache = new Map();
+    const cardInfoMap = new Map();
 
     window.addEventListener('DOMContentLoaded', () => {
       auth.onAuthStateChanged(user => {
@@ -492,10 +494,10 @@
       }
     }
 
-    // Hàm nhận diện Loại lá bài (Monster, Spell, Trap) chuẩn xác
+    // Hàm nhận diện Loại lá bài (Monster, Spell, Trap) chính xác 100%
     function detectCardType(typeStr) {
       if (!typeStr) return 'Monster';
-      const t = typeStr.toLowerCase();
+      const t = typeStr.toString().toLowerCase().trim();
       if (t.includes('spell')) return 'Spell';
       if (t.includes('trap')) return 'Trap';
       return 'Monster';
@@ -509,16 +511,23 @@
         if (data && data.data) {
           ocgBanlistCards = data.data.map(c => {
             const name = c.name;
+            const cardType = detectCardType(c.type);
             apiIdCache.set(Number(c.id), name);
+            cardInfoMap.set(c.id.toString(), { name, type: cardType });
+            cardInfoMap.set(name.toLowerCase(), { name, type: cardType });
+
             if (c.card_images) {
               c.card_images.forEach(img => {
-                if (img.id) apiIdCache.set(Number(img.id), name);
+                if (img.id) {
+                  apiIdCache.set(Number(img.id), name);
+                  cardInfoMap.set(img.id.toString(), { name, type: cardType });
+                }
               });
             }
             return {
               id: c.id,
               name: name,
-              type: detectCardType(c.type),
+              type: cardType,
               image: c.card_images?.[0]?.image_url_small || '',
               status: mapStatus(c.banlist_info?.ban_ocg),
               isUserAdded: false
@@ -528,7 +537,7 @@
       } catch (e) {
         console.warn("Lỗi nạp bài OCG.");
       } finally {
-        combineAndRender();
+        await combineAndRender();
       }
     }
 
@@ -541,32 +550,52 @@
     }
 
     function setupRealtimeListeners() {
-      db.collection('submissions').onSnapshot(snapshot => {
+      db.collection('submissions').onSnapshot(async snapshot => {
         allSubmissions = [];
         snapshot.forEach(doc => allSubmissions.push({ docId: doc.id, ...doc.data() }));
         renderAdminTable();
-        combineAndRender();
+        await combineAndRender();
       });
     }
 
-    function combineAndRender() {
+    async function combineAndRender() {
       document.getElementById('banlistLoader')?.classList.add('hidden');
 
-      const customCards = allSubmissions
-        .filter(s => s.isApproved)
-        .map(sub => {
-          apiIdCache.set(Number(sub.cardId), sub.cardName);
-          return {
-            id: sub.cardId,
-            name: sub.cardName,
-            type: detectCardType(sub.cardType || 'Monster'),
-            image: sub.cardImage,
-            status: sub.status,
-            source: sub.userName,
-            reason: sub.reason,
-            isUserAdded: true
-          };
-        });
+      const approvedSubmissions = allSubmissions.filter(s => s.isApproved);
+
+      // Xử lý truy vấn bổ sung nếu lá bài trong Firestore bị thiếu type
+      const customCards = await Promise.all(approvedSubmissions.map(async sub => {
+        apiIdCache.set(Number(sub.cardId), sub.cardName);
+        
+        let detectedType = sub.cardType ? detectCardType(sub.cardType) : null;
+
+        if (!detectedType || !sub.cardType) {
+          const cached = cardInfoMap.get(sub.cardId.toString()) || cardInfoMap.get(sub.cardName.toLowerCase());
+          if (cached) {
+            detectedType = cached.type;
+          } else {
+            try {
+              const res = await fetch(`https://db.ygoprodeck.com/api/v7/cardinfo.php?id=${sub.cardId}`);
+              const data = await res.json();
+              if (data && data.data && data.data[0]) {
+                detectedType = detectCardType(data.data[0].type);
+                cardInfoMap.set(sub.cardId.toString(), { name: sub.cardName, type: detectedType });
+              }
+            } catch (e) {}
+          }
+        }
+
+        return {
+          id: sub.cardId,
+          name: sub.cardName,
+          type: detectedType || 'Monster',
+          image: sub.cardImage,
+          status: sub.status,
+          source: sub.userName,
+          reason: sub.reason,
+          isUserAdded: true
+        };
+      }));
 
       document.getElementById('customTotalCount').textContent = `${customCards.length} lá`;
       if (customCards.length === 0) {
@@ -580,11 +609,11 @@
 
       combinedBanlist = [...customCards, ...filteredOCG];
 
-      // Render cả 2 nhóm CUSTOM và OCG OFFICIAL theo Monster, Spell, Trap
+      // Render 2 nhóm CUSTOM & OCG OFFICIAL theo đúng phân loại Monster, Spell, Trap
       renderBanlistGroup('custom', customCards);
       renderBanlistGroup('ocg', filteredOCG);
 
-      // Cập nhật số lượng OCG
+      // Cập nhật đếm số lượng lá cấm OCG
       document.getElementById('forbiddenCount').textContent = filteredOCG.filter(c => c.status === 'Forbidden').length;
       document.getElementById('limitedCount').textContent = filteredOCG.filter(c => c.status === 'Limited').length;
       document.getElementById('semiLimitedCount').textContent = filteredOCG.filter(c => c.status === 'Semi-Limited').length;
@@ -734,13 +763,15 @@
       if (!selectedCard) return alert("⚠️ Vui lòng tìm và chọn lá bài trước!");
 
       try {
+        const detectedType = detectCardType(selectedCard.type);
+
         await db.collection('submissions').doc(currentUser.uid + '_' + selectedCard.id).set({
           uid: currentUser.uid,
           userEmail: userEmailNormalized,
           userName: currentUser.displayName || currentUser.email,
           cardId: selectedCard.id,
           cardName: selectedCard.name,
-          cardType: selectedCard.type,
+          cardType: detectedType, // Lưu đúng dạng 'Monster', 'Spell' hoặc 'Trap'
           cardImage: selectedCard.card_images[0]?.image_url_small,
           status: document.getElementById('banStatus').value,
           reason: document.getElementById('banReason').value || "",
